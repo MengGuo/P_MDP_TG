@@ -2,3 +2,4 @@
 *.pyc
 gurobi.log
 *.dot
+.DS_Store
