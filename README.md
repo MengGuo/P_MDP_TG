@@ -19,6 +19,10 @@ Features
 * Interface between LTL formula, Buchi Automaton, Deterministic Robin Automaton and NetworkX graph objects.
 * Computing maximal accepting end components (MAEC) of MDPs.
 
+<p align="center">  
+  <img src="https://github.com/MengGuo/Roadmap_Poly2tri/blob/master/data/example.png" width="800"/>
+</p>
+
 ----
 Dependence
 ----
