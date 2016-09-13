@@ -20,7 +20,7 @@ Features
 * Computing maximal accepting end components (MAEC) of MDPs.
 
 <p align="center">  
-  <img src="https://github.com/MengGuo/Roadmap_Poly2tri/blob/master/data/example.png" width="800"/>
+  <img src="https://github.com/MengGuo/P_MDP_TG/blob/master/MDP_TG/figures/risk.png" width="800"/>
 </p>
 
 ----
