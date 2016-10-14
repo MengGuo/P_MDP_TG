@@ -9,10 +9,10 @@ Description
 This package contains the implementation for policy synthesis algorithms given a probabilistically-labeled Markov Decision Process (MDP) (as the robot motion model) and a Linear Temporal Logic (LTL) formula (as the robot task). It outputs a stationary  and finite-memory policy consists of plan prefix and plan suffix, such that the controlled robot behavior fulfills the task with a given lower-bounded risk and minimizes the expected total cost. 
 
 
-
 <p align="center">  
-  <img src="https://github.com/MengGuo/P_MDP_TG/blob/master/MDP_TG/figures/mdp_tg.png" width="600"/>
+  <img src="https://github.com/MengGuo/P_MDP_TG/blob/master/MDP_TG/figures/risk.png" width="600"/>
 </p>
+
 
 
 -----
@@ -51,8 +51,10 @@ best_all_plan = syn_full_plan(prod_dra, allowed_risk)
 ```
 
 <p align="center">  
-  <img src="https://github.com/MengGuo/P_MDP_TG/blob/master/MDP_TG/figures/risk.png" width="600"/>
+  <img src="https://github.com/MengGuo/P_MDP_TG/blob/master/MDP_TG/figures/mdp_tg.png" width="600"/>
 </p>
+
+
 
 ----
 Dependence
