@@ -19,9 +19,9 @@ This package contains the implementation for policy synthesis algorithms given a
 Features
 -----
 * Allows probabilistic labels on MDP states.
-* Tunable _trade-off_ between `risk` and `expected total cost` in the plan prefix.
+* **Tunable** _trade-off_ between `risk` and `expected total cost` in the plan prefix.
 * Linear programs for solving constrained stochastic shortest path (SSP).
-* Optimization over *both* plan prefix and suffix.
+* Optimization over **both** plan prefix and suffix.
 * Relaxed policy generation for cases where no accepting end components (AECs) exist.
 * Interface between LTL formula, Buchi Automaton, Deterministic Robin Automaton and NetworkX graph objects.
 * Computing maximal accepting end components (MAEC) of MDPs.
