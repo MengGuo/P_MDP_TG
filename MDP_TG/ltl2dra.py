@@ -17,7 +17,7 @@ from promela import Parser
 
 def run_ltl2dra(formula):
     #----call ltl2dstar executable----
-    cmd = "echo \"%s\"" % formula + " | " + "./MDP_TG/ltl2dstar " + "--ltl2nba=spin:ltl2ba --stutter=no - -"
+    cmd = "echo \"%s\"" % formula + " | " + "./MDP_TG/ltl2dstar " + "--ltl2nba=spin:./MDP_TG/ltl2ba --stutter=no - -"
     raw_output = check_output(cmd, shell=True)
     ascii_decoder = getdecoder("ascii")
     (output, _) = ascii_decoder(raw_output)
