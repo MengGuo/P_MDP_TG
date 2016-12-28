@@ -105,14 +105,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
         Sn = set(path_init.keys()).difference(sf)
         #----find bad states that can not reach MEC
         simple_digraph = DiGraph()
-        for s_f in prod_mdp.__iter__():
-            if s_f not in simple_digraph:
-                simple_digraph.add_node(s_f)
-            for s_t in prod_mdp.successors_iter(s_f):
-                if s_t not in simple_digraph:
-                    simple_digraph.add_node(s_t)
-                if (s_t, s_f) not in simple_digraph.edges():
-                    simple_digraph.add_edge(s_t,s_f)
+        simple_digraph.add_edges_from(((v,u) for u,v in prod_mdp.edges()))
         path = single_source_shortest_path(simple_digraph, random.sample(ip,1)[0])
         reachable_set = set(path.keys())
         print 'States that can reach sf, size: %s' %str(len(reachable_set))
