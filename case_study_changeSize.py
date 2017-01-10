@@ -167,8 +167,7 @@ print 'Compute MEC done, time: %s' %str(t42-t41)
 
 #------
 gamma = 0.0 # 0.3
-alpha = 1.0
-best_all_plan = syn_full_plan(prod_dra, gamma, alpha)
+best_all_plan = syn_full_plan(prod_dra, gamma)
 t5 = time.time()
 print '------------------------------'
 print 'Plan synthesis done, time: %s' %str(t5-t42)
