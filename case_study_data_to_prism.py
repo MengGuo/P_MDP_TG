@@ -1,5 +1,6 @@
 from MDP_TG.mdp import Motion_MDP
 from MDP_TG.dra import Dra, Product_Dra
+import networkx
 
 import time
 import pickle
@@ -143,7 +144,7 @@ order = '& %s %s' %(order1, order2)
 task1 = '& %s & G ! obstacle %s' %(all_base, order2)
 task2 = '& %s G F supply' %all_base
 task3 = '& %s %s' %(all_base, order2)
-dra = Dra(task1)
+dra = Dra(all_base)
 t3 = time.time()
 print '------------------------------'
 print 'DRA done, time: %s' %str(t3-t2)
@@ -160,4 +161,15 @@ print '------------------------------'
 print 'Compute MEC done, time: %s' %str(t42-t41)
 
 print '------------------------------'
-pickle.dump(prod_dra,open('nx_prod_mdp_model.p','wb'))
+t43 = time.time()
+clean_prod_dra = dict()
+clean_prod_dra['name'] = 'size%d_all_base' %N
+clean_prod_dra['init'] = prod_dra.graph['initial']
+clean_prod_dra['states'] = prod_dra.nodes()
+clean_prod_dra['state_act'] = networkx.get_node_attributes(prod_dra,'act')
+clean_prod_dra['edge_prop'] = networkx.get_edge_attributes(prod_dra,'prop')
+clean_prod_dra['accept'] = prod_dra.graph['accept']
+
+pickle.dump(clean_prod_dra,open('nx_prod_mdp_model.p','wb'))
+print '------------------------------'
+print 'Save to clean pickle data, time: %s' %str(t43-t42)
