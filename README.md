@@ -25,7 +25,7 @@ Features
 * **Relaxed** policy generation for cases where no accepting end components (AECs) exist.
 * Interface between LTL formula, Buchi Automaton, Deterministic Robin Automaton and NetworkX graph objects.
 * Computing maximal accepting end components (MAEC) of MDPs.
-* [New] Clean save for product automaton in [PRISM language](http://www.prismmodelchecker.org/manual/ThePRISMLanguage/Introduction), see [interface](https://github.com/MengGuo/PRISM_interface).
+* [New] Clean save of product automaton via pickle, for translating later to [PRISM language](http://www.prismmodelchecker.org/manual/ThePRISMLanguage/Introduction), see [the interface](https://github.com/MengGuo/PRISM_interface).
 
 
 ```python
