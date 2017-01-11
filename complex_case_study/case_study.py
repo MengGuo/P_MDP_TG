@@ -150,6 +150,7 @@ t2 = time.time()
 print 'MDP done, time: %s' %str(t2-t0)
 
 #----
+ordered_reach = '& F G base3 & F base1 & F base2 & F base3 G ! obstacle'
 all_base = '& G F base1 & G F base2 & G F base3 G ! obstacle'
 order1 = 'G i supply X U ! supply base'
 order2 = 'G i base X U ! base supply'
