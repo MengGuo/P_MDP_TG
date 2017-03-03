@@ -101,7 +101,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
         print 'Reachable from init size: %s' %len(path_init.keys())
         if not set(path_init.keys()).intersection(sf):
             print "Initial node can not reach sf"
-            return None, None, None, None
+            return None, None, None, None, None, None
         Sn = set(path_init.keys()).difference(sf)
         #----find bad states that can not reach MEC
         simple_digraph = DiGraph()
@@ -248,7 +248,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
             return plan_prefix, cost, risk, y_in_sf, Sr, Sd
         except GurobiError:
             print "Gurobi Error reported"
-            return None, None, None, None                        
+            return None, None, None, None, None, None
 
 
 def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
