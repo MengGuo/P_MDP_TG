@@ -173,46 +173,46 @@ print '------------------------------'
 print 'Plan synthesis done, time: %s' %str(t5-t42)
 
 #----------------------------------------
-print "----------------------------------------"
-print "||||||||Simulation start||||||||||||||||"
-print "----------------------------------------"
-total_T = 100
-state_seq = [initial_node,]
-label_seq = [initial_label,]
-N = 20
-n = 0
-print "Try %s simulations of length %s" %(str(N), str(total_T))
+# print "----------------------------------------"
+# print "||||||||Simulation start||||||||||||||||"
+# print "----------------------------------------"
+# total_T = 100
+# state_seq = [initial_node,]
+# label_seq = [initial_label,]
+# N = 20
+# n = 0
+# print "Try %s simulations of length %s" %(str(N), str(total_T))
 
-XX = []
-LL = []
-UU = []
-MM = []
-PP = []
+# XX = []
+# LL = []
+# UU = []
+# MM = []
+# PP = []
 
-while (n < N):
-    print '=======simulation %s starts=======' %str(n)
-    X, L, U, M, PX = prod_dra.execution(best_all_plan, total_T, state_seq, label_seq)
-    # print 'Product State trajectory: %s' %str(PX)
-    # print 'State trajectory: %s' %str(X)
-    # print 'Label trajectory: %s' %str(L)
-    # print 'Control Actions: %s' %str(U)
-    # print 'Marker sequence: %s' %str(M)
-    print '=======simulation %s ends=======' %str(n)
-    XX.append(X)
-    LL.append(L)
-    UU.append(U)
-    MM.append(M)
-    PP.append(PX)
-    #run_movie(motion_mdp, WS_d, WS_node_dict, X, L, U, M)
-    n += 1
+# while (n < N):
+#     print '=======simulation %s starts=======' %str(n)
+#     X, L, U, M, PX = prod_dra.execution(best_all_plan, total_T, state_seq, label_seq)
+#     # print 'Product State trajectory: %s' %str(PX)
+#     # print 'State trajectory: %s' %str(X)
+#     # print 'Label trajectory: %s' %str(L)
+#     # print 'Control Actions: %s' %str(U)
+#     # print 'Marker sequence: %s' %str(M)
+#     print '=======simulation %s ends=======' %str(n)
+#     XX.append(X)
+#     LL.append(L)
+#     UU.append(U)
+#     MM.append(M)
+#     PP.append(PX)
+#     #run_movie(motion_mdp, WS_d, WS_node_dict, X, L, U, M)
+#     n += 1
 
-t6 = time.time()
-print 'MC simulation done, time: %s' %str(t6-t5)    
+# t6 = time.time()
+# print 'MC simulation done, time: %s' %str(t6-t5)    
     
-# visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, 'GFabc_rex_escape_movie')    
+# # visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, 'GFabc_rex_escape_movie')    
 
 
-t7 = time.time()
-print 'Visualize paths done, time: %s' %str(t7-t6)    
+# t7 = time.time()
+# print 'Visualize paths done, time: %s' %str(t7-t6)    
 
-analyze_events(MM, LL)
+# analyze_events(MM, LL)
