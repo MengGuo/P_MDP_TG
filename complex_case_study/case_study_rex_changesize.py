@@ -10,7 +10,7 @@ import networkx
 
 t0 = time.time()
 
-N = 5 # 9, 15, 19, 25, 29
+N = 19 # 9, 15, 19, 25, 29
 #-------- real example -------
 WS_d = 1.0
 WS_node_dict = {
