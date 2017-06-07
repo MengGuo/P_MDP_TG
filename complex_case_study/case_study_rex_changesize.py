@@ -22,12 +22,14 @@ WS_node_dict = {
     (WS_d, (2*N-1)*WS_d): {frozenset(['base3','base']): 1.0,
            frozenset(): 0.0,},
     (N*WS_d, N*WS_d): {frozenset(['obstacle','top']): 0.9,
-                 frozenset(): 0.1,},
+                 frozenset(): 0.1,}, # high prob obstacles
 }
 
+# add low prob obstacles
 for k_x in range(N+2,2*N+1,2):
     WS_node_dict[(k_x*WS_d, N*WS_d)] = {frozenset(['obstacle','low']): 0.1, frozenset(): 0.9,}
 
+# add low prob obstacles
 for k_y in range(N+2,2*N+1,2):
     WS_node_dict[(N*WS_d, k_y*WS_d)] = {frozenset(['obstacle','low']): 0.1, frozenset(): 0.9,}
 
