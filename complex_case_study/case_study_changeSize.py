@@ -212,7 +212,7 @@ print 'MC simulation done, time: %s' %str(t6-t5)
 # visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, 'GFabc_rex_escape_movie')    
 
 
-# t7 = time.time()
-# print 'Visualize paths done, time: %s' %str(t7-t6)    
+t7 = time.time()
+print 'Visualize paths done, time: %s' %str(t7-t6)    
 
 analyze_events(MM, LL)
