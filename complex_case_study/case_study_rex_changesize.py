@@ -1,13 +1,16 @@
 from MDP_TG.mdp import Motion_MDP
 from MDP_TG.dra import Dra, Product_Dra
-from MDP_TG.lp import syn_full_plan
+from MDP_TG.lp import syn_full_plan, syn_full_plan_rex
 
+import pickle
 
 import time
 
+import networkx
+
 t0 = time.time()
 
-N = 29
+N = 5 # 9, 15, 19, 25, 29
 #-------- real example -------
 WS_d = 1.0
 WS_node_dict = {
@@ -18,24 +21,23 @@ WS_node_dict = {
            frozenset(): 0.0,},
     (WS_d, (2*N-1)*WS_d): {frozenset(['base3','base']): 1.0,
            frozenset(): 0.0,},
-    (WS_d, N*WS_d): {frozenset(['supply',]): 0.8,
-           frozenset(): 0.2,},
-    (N*WS_d, 3*WS_d): {frozenset(['supply',]): 0.2,
-           frozenset(): 0.8,},
-    ((2*N-1)*WS_d, N*WS_d): {frozenset(['supply',]): 0.5,
-           frozenset(): 0.5,},
-    (N*WS_d, (2*N-1)*WS_d): {frozenset(['supply',]): 0.5,
-           frozenset(): 0.5,},
-    (N*WS_d, WS_d): {frozenset(['obstacle',]): 0.99,
-                 frozenset(): 0.01,},        
+    (N*WS_d, N*WS_d): {frozenset(['obstacle','top']): 0.9,
+                 frozenset(): 0.1,},
 }
+
+for k_x in range(N+2,2*N+1,2):
+    WS_node_dict[(k_x*WS_d, N*WS_d)] = {frozenset(['obstacle','low']): 0.1, frozenset(): 0.9,}
+
+for k_y in range(N+2,2*N+1,2):
+    WS_node_dict[(N*WS_d, k_y*WS_d)] = {frozenset(['obstacle','low']): 0.1, frozenset(): 0.9,}
 
 for x in range(0,N):
     for y in range(0,N):
         node = ((2*x+1)*WS_d, (2*y+1)*WS_d)
         if node not in WS_node_dict:
             WS_node_dict[node] = {frozenset(): 1.0,}
-    
+            
+
 print 'WS_node_dict_size', len(WS_node_dict)
 #----
 # visualize_world(WS_d, WS_node_dict, 'world')
@@ -136,39 +138,42 @@ for fnode in robot_nodes.iterkeys():
 #----
 motion_mdp = Motion_MDP(robot_nodes, robot_edges, U, initial_node, initial_label)
 t2 = time.time()
-print '------------------------------'
 print 'MDP done, time: %s' %str(t2-t0)
 
+pickle.dump(networkx.get_edge_attributes(motion_mdp, 'prop'), open('motion_mdp_edges.p', "wb"))
 #----
-ordered_reach = '& F G base3 & F base1 & F base2 & F base3 G ! obstacle'
-all_base = '& G F base1 & G F base2 G F base3'
+all_base = '& G F base1 & G F base2 & G F base3 G ! obstacle'
 order1 = 'G i supply X U ! supply base'
 order2 = 'G i base X U ! base supply'
 order = '& %s %s' %(order1, order2)
 task1 = '& %s & G ! obstacle %s' %(all_base, order2)
 task2 = '& %s G F supply' %all_base
 task3 = '& %s %s' %(all_base, order2)
-dra = Dra(task1)
+dra = Dra(all_base)
 t3 = time.time()
-print '------------------------------'
 print 'DRA done, time: %s' %str(t3-t2)
 
 #----
 prod_dra = Product_Dra(motion_mdp, dra)
 #prod_dra.dotify()
 t41 = time.time()
-print '------------------------------'
 print 'Product DRA done, time: %s' %str(t41-t3)
+
+pickle.dump((networkx.get_edge_attributes(prod_dra, 'prop'), prod_dra.graph['initial']), open('prod_dra_edges.p', "wb"))
+
 #----
-prod_dra.compute_S_f()
+prod_dra.compute_S_f_rex()
 t42 = time.time()
-print '------------------------------'
-print 'Compute MEC done, time: %s' %str(t42-t41)
+print 'Compute SCC done, time: %s' %str(t42-t41)
 
 #------
-gamma = 0.0 # 0.3
-best_all_plan = syn_full_plan(prod_dra, gamma)
+gamma = 0.3 # 0.3
+d = 300
+best_all_plan = syn_full_plan_rex(prod_dra, gamma, d)
+#best_all_plan = syn_full_plan(prod_dra, gamma1, gamma2)
 t5 = time.time()
-print '------------------------------'
 print 'Plan synthesis done, time: %s' %str(t5-t42)
+
+    
+
 
