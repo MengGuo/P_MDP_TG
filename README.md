@@ -55,7 +55,7 @@ best_all_plan = syn_full_plan(prod_dra, allowed_risk)
   <img src="https://github.com/MengGuo/P_MDP_TG/blob/master/MDP_TG/figures/mdp_tg.png" width="600"/>
 </p>
 
-* [New] Virtual experimental platform based on V_REP.
+* [New] Virtual experimental platform based on [V_REP](http://www.coppeliarobotics.com).
 
 <p align="center">  
   <img src="https://github.com/MengGuo/P_MDP_TG/blob/master/v_rep/vrep.png" width="600"/>
