@@ -25,9 +25,9 @@ def connect_vrep():
         opmode = vrep.simx_opmode_oneshot_wait
         # Try to retrieve motors and robot handlers
         # http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxGetObjectHandle
-        ret_l, LMotorHandle = vrep.simxGetObjectHandle(clientID, "K3_leftWheelMotor", opmode)
-        ret_r, RMotorHandle = vrep.simxGetObjectHandle(clientID, "K3_rightWheelMotor", opmode)
-        ret_a, RobotHandle = vrep.simxGetObjectHandle(clientID, "K3_robot", opmode)
+        ret_l, LMotorHandle = vrep.simxGetObjectHandle(clientID, "Pioneer_p3dx_leftMotor", opmode)
+        ret_r, RMotorHandle = vrep.simxGetObjectHandle(clientID, "Pioneer_p3dx_rightMotor", opmode)
+        ret_a, RobotHandle = vrep.simxGetObjectHandle(clientID, "Pioneer_p3dx", opmode)
         # If handlers are OK, execute simulation
         if (ret_l == 0) and (ret_r == 0) and (ret_a == 0):
             # Start the simulation
