@@ -18,13 +18,14 @@ def syn_full_plan_comb(prod_mdp, gamma, alpha=1):
         if plan_fi:
             Plan.append(plan_fi)
         else: 
-            "No valid found in S_fi!"
+            "No valid plan found in S_fi!"
     if Plan:
         print "========================="
         print " || Final compilation  ||"
         print "========================="
         best_all_plan = min(Plan, key=lambda p: p[0])
-        print 'Total cost: %s, prefix cost:%s, prefix risk: %s, suffix cost:%s, suffix risk:%s'%(best_all_plan[0], best_all_plan[2],best_all_plan[3], best_all_plan[5], best_all_plan[6])
+        best_all_plan = list(best_all_plan)
+        print 'Balanced cost: %s, prefix cost:%s, prefix risk: %s, suffix cost:%s, suffix risk:%s'%(best_all_plan[0], best_all_plan[2],best_all_plan[3], best_all_plan[5], best_all_plan[6])
         plan_bad = syn_plan_bad(prod_mdp, best_all_plan[7])
         print 'Plan for bad states obtained for %s states in Sd' %str(len(best_all_plan[7][3]))
         best_all_plan.append(plan_bad)
@@ -65,6 +66,7 @@ def syn_full_plan(prod_mdp, gamma, alpha=1):
         print 'cost: %s; risk: %s '%(best_all_plan[0][1], best_all_plan[0][2])
         print 'Best plan suffix obtained for %s states in Sf' %str(len(best_all_plan[1][0]))
         print 'cost: %s; risk: %s '%(best_all_plan[1][1], best_all_plan[1][2])
+        print 'Total cost:%s' %(best_all_plan[0][1] + alpha*best_all_plan[1][1])
         plan_bad = syn_plan_bad(prod_mdp, best_all_plan[2])
         print 'Plan for bad states obtained for %s states in Sd' %str(len(best_all_plan[2][3]))
         best_all_plan.append(plan_bad)
@@ -728,14 +730,14 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
     print "===========[plan prefix synthesis starts]==========="
     Sf = set()
     for mec in S_fi:
-        Sf.union(mec[0]) # mec = (sf, ip, act)
+        Sf.update(mec[0]) # mec = (sf, ip, act)
     delta = 1.0
     for init_node in prod_mdp.graph['initial']:
         path_init = single_source_shortest_path(prod_mdp, init_node)
         print 'Reachable from init size: %s' %len(path_init.keys())
         if not set(path_init.keys()).intersection(Sf):
             print "Initial node can not reach Sf"
-            return None, None, None, None, None, None
+            return None, None, None, None, None, None, None, None
         Sn = set(path_init.keys()).difference(Sf)
         #----find bad states that can not reach MEC
         simple_digraph = DiGraph()
@@ -744,7 +746,7 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
         for mec in S_fi:
             ip = mec[1]
             path = single_source_shortest_path(simple_digraph, random.sample(ip,1)[0])
-            reachable_set.union(set(path.keys()))
+            reachable_set.update(set(path.keys()))
         print 'States that can reach Sf, size: %s' %str(len(reachable_set))
         Sd = Sn.difference(reachable_set)
         Sr = Sn.intersection(reachable_set)
@@ -769,9 +771,9 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             #suffix variables
             Z = defaultdict(float)
             for mec in S_fi:
-                sf = MEC[0]
-                ip = MEC[1]
-                act = MEC[2].copy()
+                sf = mec[0]
+                ip = mec[1]
+                act = mec[2].copy()
                 for s in sf:
                     for u in act[s]:
                         Z[(s,u)] = model.addVar(vtype=GRB.CONTINUOUS,lb=0, name='z[(%s, %s)]' %(s, u))
@@ -785,11 +787,11 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                     for u in prop.iterkeys():
                         pe = prop[u][0]
                         ce = prop[u][1]
-                        obj += Y[(s,u)]*pe*ce
+                        obj += alpha*Y[(s,u)]*pe*ce
             for mec in S_fi:
-                sf = MEC[0]
-                ip = MEC[1]
-                act = MEC[2].copy()
+                sf = mec[0]
+                ip = mec[1]
+                act = mec[2].copy()
                 for s in sf:
                     for u in act[s]:
                         for t in prod_mdp.successors_iter(s):
@@ -797,9 +799,9 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                             if u in prop.keys():
                                 pe = prop[u][0]
                                 ce = prop[u][1]
-                                obj += alpha*Z[(s,u)]*pe*ce
+                                obj += (1.0-alpha)*Z[(s,u)]*pe*ce
             model.setObjective(obj, GRB.MINIMIZE)
-            print 'Prefix + alpha*Suffix cost Objective function set'
+            print 'alpha*Prefix + (1.0-alpha)*Suffix cost Objective function set'
             # add constraints
             #------------------------------
             y_to_sd = 0.0
@@ -838,9 +840,9 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             print 'Prefix middle node flow balanced'
             #----------------------
             for mec in S_fi:
-                sf = MEC[0]
-                ip = MEC[1]
-                act = MEC[2].copy()
+                sf = mec[0]
+                ip = mec[1]
+                act = mec[2].copy()
                 for s in sf:
                     constr3 = 0
                     constr4 = 0
@@ -952,9 +954,9 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             # compute optimal plan suffix given the LP solution
             plan_suffix = dict()
             for mec in S_fi:
-                sf = MEC[0]
-                ip = MEC[1]
-                act = MEC[2].copy()
+                sf = mec[0]
+                ip = mec[1]
+                act = mec[2].copy()
                 for s in sf:
                     norm = 0
                     U = []
@@ -977,9 +979,9 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 cost_suf = 0.0
                 y_to_ip = 0.0
                 y_out = 0.0
-                sf = MEC[0]
-                ip = MEC[1]
-                act = MEC[2].copy()
+                sf = mec[0]
+                ip = mec[1]
+                act = mec[2].copy()
                 for s in sf:
                     for t in prod_mdp.successors_iter(s):
                         prop = prod_mdp.edge[s][t]['prop'].copy()
@@ -987,7 +989,7 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                             if u in act[s]:
                                 pe = prop[u][0]
                                 ce = prop[u][1]
-                                cost_suf += alpha*Z[(s,u)].X*pe*ce
+                                cost_suf += Z[(s,u)].X*pe*ce
                         if (t not in sf):
                             prop = prod_mdp.edge[s][t]['prop'].copy()
                             for u in prop.iterkeys():
@@ -1008,7 +1010,7 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             print "----Suffix risk computed: %s" %str(Risk_suf)
             print "----Suffix cost computed: %s" %str(Cost_suf)
             total_cost = model.objval
-            print "----Prefix + alpha*Suffix cost computed"
+            print "----alpha*Prefix + (1-alpha)*Suffix cost computed"
             return total_cost, plan_prefix, cost_pre, risk_pre, plan_suffix, Cost_suf, Risk_suf, [Sf,Sn,Sr,Sd]
         except GurobiError:
             print "Gurobi Error reported"

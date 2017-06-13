@@ -170,7 +170,7 @@ class Product_Dra(DiGraph):
             if S_f:
                 print "-------Accepting MEC for Prod DRA Computed-------"
                 print "acc_pair number: %s" %str(k-1)
-                print "Sf number: %s" %len(S_f)
+                print "Sf AMEC number: %s" %len(S_f)
             else:
                 print "No accepting ECs found!"
                 print "Check your MDP and Task formulation"
