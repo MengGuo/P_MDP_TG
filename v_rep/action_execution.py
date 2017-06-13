@@ -2,16 +2,25 @@
 
 import vrep
 
-from math import sqrt, cos, sin, radians, atan2
+from math import sqrt, cos, sin, radians, atan2, radians
 from math import pi as PI
 from numpy import floor, random
 
 import sys
+import time
 
 # import workspace and robot model
-from load_model import WS_d, initial_state, motion_mdp_edges
+#from load_model import WS_d, initial_state, motion_mdp_edges
 
+def reset_vrep():
+    print 'Start to connect vrep'
+    # Close eventual old connections
+    vrep.simxFinish(-1)
+    # Connect to V-REP remote server
+    clientID = vrep.simxStart('127.0.0.1', 19997, True, True, 5000, 5)
+    vrep.simxFinish(clientID)
 
+    
 def connect_vrep():
     print 'Start to connect vrep'
     # Close eventual old connections
@@ -36,25 +45,32 @@ def connect_vrep():
             print "----- Simulation started -----"
             # Getting the robot position
             # http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxGetObjectPosition
-            pret, RobotPos = vrep.simxGetObjectPosition(clientID, RobotHandle, -1, vrep.simx_opmode_streaming)
+            pret, RobotPos = vrep.simxGetObjectPosition(clientID, RobotHandle, -1, vrep.simx_opmode_blocking)
             print "robot position: (x = " + str(RobotPos[0]) + ", y = " + str(RobotPos[1]) + ")"
             # http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxGetObjectOrientation
-            oret, RobotOrient = vrep.simxGetObjectOrientation(clientID, RobotHandle, -1, vrep.simx_opmode_streaming)
-            print "robot orientation: (x = " + str(RobotOrient[0]) + ", y = " + str(RobotOrient[1]) +", z = " + str(RobotOrient[2]) + ")"
-            raw_pose_data = [RobotPos[0], RobotPos[1], RobotOrient[0]]
+            oret, RobotOrient = vrep.simxGetObjectOrientation(clientID, RobotHandle, -1, vrep.simx_opmode_blocking)
+            print "robot orientation: (a = " + str(RobotOrient[0]) + ", b = " + str(RobotOrient[1]) +", g = " + str(RobotOrient[2]) + ")"
+            raw_pose_data = [RobotPos[0], RobotPos[1], RobotOrient[2]]
             # motor control
             next_action = 'TR'
             linearVelo, angularVelo, goal_pose = action_execution(raw_pose_data, next_action)
             l_ang_v, r_ang_v = dif_drive(linearVelo, angularVelo)
-            dist_bound = 0.1
+            dist_bound = 0.2
             ang_bound = 0.3
             while (distance(raw_pose_data, goal_pose)>= dist_bound) or (abs(raw_pose_data[2]-goal_pose[2])>=ang_bound):
-                pret, RobotPos = vrep.simxGetObjectPosition(clientID, RobotHandle, -1, vrep.simx_opmode_buffer)
-                oret, RobotOrient = vrep.simxGetObjectOrientation(clientID, RobotHandle, -1, vrep.simx_opmode_buffer)
-                raw_pose_data = [RobotPos[0], RobotPos[1], RobotOrient[0]]                
+                pret, RobotPos = vrep.simxGetObjectPosition(clientID, RobotHandle, -1, vrep.simx_opmode_blocking)
+                #print "robot position: (x = " + str(RobotPos[0]) + ", y = " + str(RobotPos[1]) + ")"
+                oret, RobotOrient = vrep.simxGetObjectOrientation(clientID, RobotHandle, -1, vrep.simx_opmode_blocking)
+                #print "robot orientation: (a = " + str(RobotOrient[0]) + ", b = " + str(RobotOrient[1]) +", g = " + str(RobotOrient[2]) + ")"
+                raw_pose_data = [RobotPos[0], RobotPos[1], RobotOrient[2]]
+                #print 'raw_pose_data', raw_pose_data
                 vrep.simxSetJointTargetVelocity(clientID, LMotorHandle, l_ang_v, vrep.simx_opmode_streaming)
                 vrep.simxSetJointTargetVelocity(clientID, RMotorHandle, r_ang_v, vrep.simx_opmode_streaming)
-            # End the simulation, wait to be sure V-REP had the time to stop it entirely
+                #print 'distance_x_y:%s; angle_dif:%s' %(str(distance(raw_pose_data, goal_pose)),str(abs(raw_pose_data[2]-goal_pose[2])))
+            print 'Goal pose reached!'
+            vrep.simxSetJointTargetVelocity(clientID, LMotorHandle, 0, vrep.simx_opmode_streaming)
+            vrep.simxSetJointTargetVelocity(clientID, RMotorHandle, 0, vrep.simx_opmode_streaming)
+            # End the simulation, wait to be sure V-REP had the time to stop it entirely            
             vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot_wait)
             time.sleep(1)            
         # Close the connection to V-REP remote server
@@ -84,6 +100,7 @@ def distance(pose1, pose2):
 def action_execution(raw_pose_data, next_action):
     ##### action execution
     t = 0
+    WS_d = 0.25
     grid = WS_d*2    # grid size
     cell_pose_data = Raw_To_Cell_Pose(raw_pose_data, grid)
     print 'Current cell pose %s' %str(cell_pose_data)
@@ -161,7 +178,7 @@ def Find_Goal(cell_pose, grid, action_name):
     elif orientation == 'W':
         start_pose = [x, y, 0.98*PI]
     print '----------------------------------------'
-    print 'start_pose: %s, G_pose: %s' %(str(start_pose), str(G_pose))
+    print 'start_pose: %s, relative_G_pose: %s' %(str(start_pose), str(G_pose))
     print '----------------------------------------'
     goal_pose = [start_pose[i]+G_pose[i] for i in xrange(0,3)]
     if goal_pose[2] > 1.0*PI:
@@ -174,8 +191,8 @@ def Find_Goal(cell_pose, grid, action_name):
 
 def  Find_Control(action_name):
     # turn-and-forward-turn controller
-    LINEAR_V = 0.2     #m/s
-    ANGULAR_V = 0.35   #rad/s
+    LINEAR_V = 0.1    #m/s
+    ANGULAR_V = 0.15   #rad/s
     print 'Action to perform: %s' %action_name
     if action_name == 'FR':
         linear_V = LINEAR_V
@@ -211,4 +228,5 @@ def Raw_To_Cell_Pose(raw_pose, grid):
 
 if __name__ == '__main__':
     ###############
+    # reset_vrep()
     connect_vrep()
