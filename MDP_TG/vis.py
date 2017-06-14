@@ -614,3 +614,21 @@ def run_movie(motion_mdp, WS_d, WS_node_dict, X, L, U, M):
         plt.close()
 
 
+def compute_suffix_mean_cost(UU, MM, COST):
+    # record mean total cost of accepting cyclic path
+    mean_cost_U = []
+    for k, U in enumerate(UU):
+        M = MM[k]
+        c = 0.0
+        t = 0.0
+        for j,u in enumerate(U):
+            if M[j] == 1:
+                c += COST[u]
+                t += 1.0
+            elif M[j] == 10:
+                mean_cost_U.append(c/t)
+                c = 0.0
+                t = 0.0
+    print 'total number of cyclic path:%d' %len(mean_cost_U)
+    mean_cost = sum(mean_cost_U)/len(mean_cost_U)
+    return mean_cost

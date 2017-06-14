@@ -28,8 +28,9 @@ def syn_full_plan_comb(prod_mdp, gamma, alpha=1):
         print 'Balanced cost: %s, prefix cost:%s, prefix risk: %s, suffix cost:%s, suffix risk:%s'%(best_all_plan[0], best_all_plan[2],best_all_plan[3], best_all_plan[5], best_all_plan[6])
         plan_bad = syn_plan_bad(prod_mdp, best_all_plan[7])
         print 'Plan for bad states obtained for %s states in Sd' %str(len(best_all_plan[7][3]))
-        best_all_plan.append(plan_bad)
-        return best_all_plan
+        new_best_all_plan = [[best_all_plan[1],best_all_plan[2], best_all_plan[3]],[best_all_plan[4], best_all_plan[5], best_all_plan[6]], best_all_plan[7]]
+        new_best_all_plan.append(plan_bad)
+        return new_best_all_plan
     else:
         print "No valid plan found"
         return None
@@ -743,10 +744,12 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
         simple_digraph = DiGraph()
         simple_digraph.add_edges_from(((v,u) for u,v in prod_mdp.edges()))
         reachable_set = set()
+        ip_set = set()
         for mec in S_fi:
             ip = mec[1]
             path = single_source_shortest_path(simple_digraph, random.sample(ip,1)[0])
             reachable_set.update(set(path.keys()))
+            ip_set.update(ip)
         print 'States that can reach Sf, size: %s' %str(len(reachable_set))
         Sd = Sn.difference(reachable_set)
         Sr = Sn.intersection(reachable_set)
@@ -1011,7 +1014,7 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             print "----Suffix cost computed: %s" %str(Cost_suf)
             total_cost = model.objval
             print "----alpha*Prefix + (1-alpha)*Suffix cost computed"
-            return total_cost, plan_prefix, cost_pre, risk_pre, plan_suffix, Cost_suf, Risk_suf, [Sf,Sn,Sr,Sd]
+            return total_cost, plan_prefix, cost_pre, risk_pre, plan_suffix, Cost_suf, Risk_suf, [Sf,ip_set,Sr,Sd]
         except GurobiError:
             print "Gurobi Error reported"
             return None, None, None, None, None, None, None, None
