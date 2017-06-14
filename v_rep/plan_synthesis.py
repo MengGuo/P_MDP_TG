@@ -2,15 +2,17 @@ from MDP_TG.mdp import Motion_MDP
 from MDP_TG.dra import Dra, Product_Dra
 from MDP_TG.lp import syn_full_plan, syn_full_plan_rex
 
+import pickle
+
 import time
 
 import networkx
 
 t0 = time.time()
 
-N = 19 # 9, 15, 19, 25, 29
 #-------- real example -------
-WS_d = 1.0
+N = 7
+WS_d = 0.25
 WS_node_dict = {
     # base stations
     ((2*N-1)*WS_d, WS_d): {frozenset(['base1','base']): 1.0,
@@ -35,10 +37,11 @@ for x in range(0,N):
     for y in range(0,N):
         node = ((2*x+1)*WS_d, (2*y+1)*WS_d)
         if node not in WS_node_dict:
-            WS_node_dict[node] = {frozenset(): 1.0,}
-            
-
+            WS_node_dict[node] = {frozenset(): 1.0,}        
+    
 print 'WS_node_dict_size', len(WS_node_dict)
+
+pickle.dump((WS_node_dict, WS_d), open('v_rep/ws_model.p', "wb"))
 #----
 # visualize_world(WS_d, WS_node_dict, 'world')
 # t1 = time.time()
@@ -49,7 +52,7 @@ for loc, prop in WS_node_dict.iteritems():
     for d in ['N', 'S', 'E', 'W']:
         robot_nodes[(loc[0], loc[1], d)] = prop
 #------------------------------------        
-initial_node = (N*WS_d, N*WS_d, 'N')
+initial_node = (3*WS_d, 3*WS_d, 'E')
 initial_label = frozenset()
 
 U = [tuple('FR'), tuple('BK'), tuple('TR'), tuple('TL'), tuple('ST')]
@@ -69,13 +72,13 @@ for fnode in robot_nodes.iterkeys():
     u = U[0]
     c = C[0]
     if fd == 'N':
-        t_nodes = [(fx-2, fy+2, fd), (fx, fy+2, fd), (fx+2, fy+2, fd)]
+        t_nodes = [(fx-2*WS_d, fy+2*WS_d, fd), (fx, fy+2*WS_d, fd), (fx+2*WS_d, fy+2*WS_d, fd)]
     if fd == 'S':
-        t_nodes = [(fx-2, fy-2, fd), (fx, fy-2, fd), (fx+2, fy-2, fd)]
+        t_nodes = [(fx-2*WS_d, fy-2*WS_d, fd), (fx, fy-2*WS_d, fd), (fx+2*WS_d, fy-2*WS_d, fd)]
     if fd == 'E':
-        t_nodes = [(fx+2, fy-2, fd), (fx+2, fy, fd), (fx+2, fy+2, fd)]
+        t_nodes = [(fx+2*WS_d, fy-2*WS_d, fd), (fx+2*WS_d, fy, fd), (fx+2*WS_d, fy+2*WS_d, fd)]
     if fd == 'W':
-        t_nodes = [(fx-2, fy-2, fd), (fx-2, fy, fd), (fx-2, fy+2, fd)]
+        t_nodes = [(fx-2*WS_d, fy-2*WS_d, fd), (fx-2*WS_d, fy, fd), (fx-2*WS_d, fy+2*WS_d, fd)]
     for k, tnode in enumerate(t_nodes):
         if tnode in robot_nodes.keys():
             robot_edges[(fnode, u, tnode)] = (P_FR[k], c)
@@ -83,13 +86,13 @@ for fnode in robot_nodes.iterkeys():
     u = U[1]
     c = C[1]
     if fd == 'N':
-        t_nodes = [(fx-2, fy-2, fd), (fx, fy-2, fd), (fx+2, fy-2, fd)]
+        t_nodes = [(fx-2*WS_d, fy-2*WS_d, fd), (fx, fy-2*WS_d, fd), (fx+2*WS_d, fy-2*WS_d, fd)]
     if fd == 'S':
-        t_nodes = [(fx-2, fy+2, fd), (fx, fy+2, fd), (fx+2, fy+2, fd)]
+        t_nodes = [(fx-2*WS_d, fy+2*WS_d, fd), (fx, fy+2*WS_d, fd), (fx+2*WS_d, fy+2*WS_d, fd)]
     if fd == 'E':
-        t_nodes = [(fx-2, fy-2, fd), (fx-2, fy, fd), (fx-2, fy+2, fd)]
+        t_nodes = [(fx-2*WS_d, fy-2*WS_d, fd), (fx-2*WS_d, fy, fd), (fx-2*WS_d, fy+2*WS_d, fd)]
     if fd == 'W':
-        t_nodes = [(fx+2, fy-2, fd), (fx+2, fy, fd), (fx+2, fy+2, fd)]                
+        t_nodes = [(fx+2*WS_d, fy-2*WS_d, fd), (fx+2*WS_d, fy, fd), (fx+2*WS_d, fy+2*WS_d, fd)]                
     for k, tnode in enumerate(t_nodes):
         if tnode in robot_nodes.keys():
             robot_edges[(fnode, u, tnode)] = (P_BK[k], c)
@@ -140,6 +143,7 @@ motion_mdp = Motion_MDP(robot_nodes, robot_edges, U, initial_node, initial_label
 t2 = time.time()
 print 'MDP done, time: %s' %str(t2-t0)
 
+pickle.dump(networkx.get_edge_attributes(motion_mdp, 'prop'), open('v_rep/motion_mdp_edges.p', "wb"))
 #----
 all_base = '& G F base1 & G F base2 & G F base3 G ! obstacle'
 order1 = 'G i supply X U ! supply base'
@@ -148,6 +152,7 @@ order = '& %s %s' %(order1, order2)
 task1 = '& %s & G ! obstacle %s' %(all_base, order2)
 task2 = '& %s G F supply' %all_base
 task3 = '& %s %s' %(all_base, order2)
+task = '& F G base3 & F base1 & F base2 & F base3 G ! obstacle'
 dra = Dra(all_base)
 t3 = time.time()
 print 'DRA done, time: %s' %str(t3-t2)
@@ -158,20 +163,22 @@ prod_dra = Product_Dra(motion_mdp, dra)
 t41 = time.time()
 print 'Product DRA done, time: %s' %str(t41-t3)
 
+pickle.dump((networkx.get_edge_attributes(prod_dra, 'prop'), prod_dra.graph['initial']), open('v_rep/prod_dra_edges.p', "wb"))
 
 #----
 prod_dra.compute_S_f_rex()
 t42 = time.time()
-print 'Compute SCC done, time: %s' %str(t42-t41)
+print 'Compute ASCC done, time: %s' %str(t42-t41)
 
 #------
 gamma = 0.3 # 0.3
-d = 300
+d = 100
 best_all_plan = syn_full_plan_rex(prod_dra, gamma, d)
-#best_all_plan = syn_full_plan(prod_dra, gamma1, gamma2)
+#best_all_plan = syn_full_plan(prod_dra, gamma)
 t5 = time.time()
 print 'Plan synthesis done, time: %s' %str(t5-t42)
 
+pickle.dump(best_all_plan, open('v_rep/best_plan.p', "wb"))
     
 
 
