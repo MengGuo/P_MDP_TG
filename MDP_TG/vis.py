@@ -19,7 +19,7 @@ def visualize_run(XX, LL, UU, MM, name=None):
     N = len(XX)
     #print 'N: %s' %N
     #----
-    for n in xrange(0, N):
+    for n in range(0, N):
         X = list(XX[n])
         L = list(LL[n])
         U = list(UU[n])
@@ -27,7 +27,7 @@ def visualize_run(XX, LL, UU, MM, name=None):
         K = len(X)
         #print 'K: %s' %K
         RAD = 0.3
-        for k in xrange(0, K):
+        for k in range(0, K):
             if M[k] == 0:
                 color = 'blue'
             if M[k] == 1:
@@ -227,8 +227,8 @@ def analyze_events(MM, LL):
                 Suffix_suc = True
                 suffix_suc_count += 1
                 break
-    print 'Analyze done'
-    print 'Total %s simulations: %s failure (%s) (%s prefix, %s suffix), %s prefix successful (%s); %s suffix successful (%s)' %(str(N), str(failure_count), str(failure_count/N), str(prefix_failure_count), str(suffix_failure_count), str(prefix_suc_count), str(prefix_suc_count/N), str(suffix_suc_count), str(suffix_suc_count/prefix_suc_count))
+    print('Analyze done')
+    print('Total %s simulations: %s failure (%s) (%s prefix, %s suffix), %s prefix successful (%s); %s suffix successful (%s)' %(str(N), str(failure_count), str(failure_count/N), str(prefix_failure_count), str(suffix_failure_count), str(prefix_suc_count), str(prefix_suc_count/N), str(suffix_suc_count), str(suffix_suc_count/prefix_suc_count)))
 
 
 def visualize_world(WS_d, WS_node_dict, name=None):
@@ -237,23 +237,23 @@ def visualize_world(WS_d, WS_node_dict, name=None):
     figure = plt.figure()
     ax = figure.add_subplot(1,1,1)
     #----- draw the workspace
-    for node, prop in WS_node_dict.iteritems():
-        if frozenset(['base1','base']) in prop.keys():
+    for node, prop in WS_node_dict.items():
+        if frozenset(['base1','base']) in list(prop.keys()):
             text = '$Base1$'
             color = 'yellow'
-        elif frozenset(['base2','base']) in prop.keys():
+        elif frozenset(['base2','base']) in list(prop.keys()):
             text = '$Base2$'
             color = 'yellow'
-        elif frozenset(['base3','base']) in prop.keys():
+        elif frozenset(['base3','base']) in list(prop.keys()):
             text = '$Base3$'
             color = 'yellow'
-        elif frozenset(['obstacle','low']) in prop.keys():
+        elif frozenset(['obstacle','low']) in list(prop.keys()):
             text = '$Obs: 0.2$'
             color = '#ff8000'
-        elif frozenset(['obstacle','top']) in prop.keys():
+        elif frozenset(['obstacle','top']) in list(prop.keys()):
             text = '$Obs: 1.0$'
             color = 'red'
-        elif frozenset(['supply',]) in prop.keys():
+        elif frozenset(['supply',]) in list(prop.keys()):
             text = '$Sply: %s$' %str(prop[frozenset(['supply',])])
             if prop[frozenset(['supply',])]>=0.8:
                 color = '#0000ff'
@@ -293,33 +293,33 @@ def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
     #----visualize simulated runs----
     N = len(XX)
     #----
-    for n in xrange(0, N):
+    for n in range(0, N):
         figure = plt.figure()
         ax = figure.add_subplot(1,1,1)
         #----- draw the workspace
-        for node, prop in WS_node_dict.iteritems():
-            if frozenset(['base1','base']) in prop.keys():
+        for node, prop in WS_node_dict.items():
+            if frozenset(['base1','base']) in list(prop.keys()):
                 text = '$Base1$'
                 color = 'yellow'
-            elif frozenset(['base2','base']) in prop.keys():
+            elif frozenset(['base2','base']) in list(prop.keys()):
                 text = '$Base2$'
                 color = 'yellow'
-            elif frozenset(['base3','base']) in prop.keys():
+            elif frozenset(['base3','base']) in list(prop.keys()):
                 text = '$Base3$'
                 color = 'yellow'
-            elif frozenset(['obstacle','low']) in prop.keys():
+            elif frozenset(['obstacle','low']) in list(prop.keys()):
                 text = '$Obs: 0.1$'
                 color = '#ff7f7f'
-            elif frozenset(['obstacle','middle']) in prop.keys():
+            elif frozenset(['obstacle','middle']) in list(prop.keys()):
                 text = '$Obs: 0.5$'
                 color = '#ff8000'
-            elif frozenset(['obstacle','top']) in prop.keys():
+            elif frozenset(['obstacle','top']) in list(prop.keys()):
                 text = '$Obs: 0.9$'
                 color = 'red'                
-            elif frozenset(['obstacle','top']) in prop.keys():
+            elif frozenset(['obstacle','top']) in list(prop.keys()):
                 text = '$Obs: 1.0$'
                 color = 'red'
-            elif frozenset(['supply',]) in prop.keys():
+            elif frozenset(['supply',]) in list(prop.keys()):
                 text = '$Sply: %s$' %str(prop[frozenset(['supply',])])
                 if prop[frozenset(['supply',])]>=0.8:
                     color = '#0000ff'
@@ -349,7 +349,7 @@ def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
         M = list(MM[n])
         K = len(X)
         #print 'K: %s' %K
-        for k in xrange(0, K):
+        for k in range(0, K):
             if M[k] == 0:
                 Ecolor = 'blue'
             if M[k] == 1:
@@ -423,11 +423,11 @@ def visualize_state_dynamic(motion_mdp, WS_d, WS_node_dict, x, l, u, m):
     polygon = Polygon(car, fill = True, facecolor=Ecolor, edgecolor=Ecolor, lw=5, zorder=2)
     ax.add_patch(polygon)
     #----------------
-    for node, prop in WS_node_dict.iteritems():
+    for node, prop in WS_node_dict.items():
         if node != (xl, yl):
             S = []
             P = []
-            for s, p in prop.iteritems():
+            for s, p in prop.items():
                 S.append(s)
                 P.append(p)
             rdn = random.random()
@@ -516,7 +516,7 @@ def visualize_state_action_dynamic(motion_mdp, WS_d, WS_node_dict, x, l, u, m):
     t_x_list = []
     for t_x in motion_mdp.successors_iter(x):
         prop = motion_mdp[x][t_x]['prop']
-        if u in prop.keys():
+        if u in list(prop.keys()):
             t_x_list.append((t_x, prop[u][0]))
     #
     for new_x in t_x_list:
@@ -536,11 +536,11 @@ def visualize_state_action_dynamic(motion_mdp, WS_d, WS_node_dict, x, l, u, m):
         prob = new_x[1]
         ax.text(xl, yl, r'$%s$' %str(prob), fontsize = 10, fontweight = 'bold', color='red')                
     #----------------
-    for node, prop in WS_node_dict.iteritems():
+    for node, prop in WS_node_dict.items():
         if node != (x[0], x[1]):
             S = []
             P = []
-            for s, p in prop.iteritems():
+            for s, p in prop.items():
                 S.append(s)
                 P.append(p)
             rdn = random.random()
@@ -602,7 +602,7 @@ def run_movie(motion_mdp, WS_d, WS_node_dict, X, L, U, M):
     figure1.savefig('movie/frame%s.png' %i, dpi=DPI)
     plt.close()
     i += 1
-    for k in xrange(1,len(X)):
+    for k in range(1,len(X)):
         figure2 = visualize_state_dynamic(motion_mdp, WS_d, WS_node_dict, X[k], L[k], U[k], M[k])
         figure2.savefig('movie/frame%s.png' %i, dpi=DPI)
         plt.close()        
@@ -629,6 +629,6 @@ def compute_suffix_mean_cost(UU, MM, COST):
                 mean_cost_U.append(c/t)
                 c = 0.0
                 t = 0.0
-    print 'total number of cyclic path:%d' %len(mean_cost_U)
+    print('total number of cyclic path:%d' %len(mean_cost_U))
     mean_cost = sum(mean_cost_U)/len(mean_cost_U)
     return mean_cost

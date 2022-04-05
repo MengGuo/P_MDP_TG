@@ -14,7 +14,7 @@ from load_model import WS_d, grid, initial_state, motion_mdp_edges
 from load_model import best_plan, prod_dra_edges, x_max, x_min, y_max, y_min
 
 def reset_vrep():
-    print 'Start to connect vrep'
+    print('Start to connect vrep')
     # Close eventual old connections
     vrep.simxFinish(-1)
     # Connect to V-REP remote server
@@ -30,18 +30,18 @@ def reset_vrep():
     time.sleep(1)    
     vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot_wait)
     vrep.simxFinish(clientID)
-    print 'Connection to vrep reset-ed!'
+    print('Connection to vrep reset-ed!')
 
     
 def connect_vrep(T=100):
     #----------------
-    print 'Start to connect vrep'
+    print('Start to connect vrep')
     # Close eventual old connections
     vrep.simxFinish(-1)
     # Connect to V-REP remote server
     clientID = vrep.simxStart('127.0.0.1', 19997, True, True, 5000, 5)
     if clientID != -1:
-        print 'Connected to remote API server'
+        print('Connected to remote API server')
         # Communication operating mode with the remote API : wait for its answer before continuing (blocking mode)
         # http://www.coppeliarobotics.com/helpFiles/en/remoteApiConstants.htm
         opmode = vrep.simx_opmode_oneshot_wait
@@ -55,19 +55,19 @@ def connect_vrep(T=100):
             # Start the simulation
             # http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxStartSimulation
             vrep.simxStartSimulation(clientID, opmode)
-            print "----- Simulation started -----"
+            print("----- Simulation started -----")
             # Getting the robot position
             # http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxGetObjectPosition
             pret, RobotPos = vrep.simxGetObjectPosition(clientID, RobotHandle, -1, vrep.simx_opmode_blocking)
-            print "robot initial position: (x = " + str(RobotPos[0]) + ", y = " + str(RobotPos[1]) + ")"
+            print("robot initial position: (x = " + str(RobotPos[0]) + ", y = " + str(RobotPos[1]) + ")")
             # http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxGetObjectOrientation
             oret, RobotOrient = vrep.simxGetObjectOrientation(clientID, RobotHandle, -1, vrep.simx_opmode_blocking)
-            print "robot initial orientation: (a = " + str(RobotOrient[0]) + ", b = " + str(RobotOrient[1]) +", g = " + str(RobotOrient[2]) + ")"
+            print("robot initial orientation: (a = " + str(RobotOrient[0]) + ", b = " + str(RobotOrient[1]) +", g = " + str(RobotOrient[2]) + ")")
             raw_pose_data = shift_raw_pose([RobotPos[0], RobotPos[1], RobotOrient[2]])
             cell_pose_data = Raw_To_Cell_Pose(raw_pose_data, grid)
             #--------------------
             if cell_pose_data != set(initial_state).pop()[0]:
-                print 'Make sure the robot starts from the initial state'
+                print('Make sure the robot starts from the initial state')
             current_state = set(initial_state).pop()            
             #--------------------
             t = 0
@@ -75,24 +75,24 @@ def connect_vrep(T=100):
             U = []
             # motor control
             while (t<= T):
-                print '-------------'
+                print('-------------')
                 # print 'current_state:', str(current_state)
                 X.append(tuple(current_state))
                 next_action_name, next_segment = Find_Action(best_plan, current_state)
                 next_actstr = r''
                 for s in next_action_name:
                     next_actstr += s
-                print '=====Next action: %s at stage %s=====' %(next_actstr, str(t))                
+                print('=====Next action: %s at stage %s=====' %(next_actstr, str(t)))                
                 raw_pose_data = execute_action(clientID, RobotHandle, LMotorHandle, RMotorHandle, raw_pose_data, next_actstr)
                 t += 1
-                print 'Action %s done!' %next_actstr
+                print('Action %s done!' %next_actstr)
                 cell_pose_data = Raw_To_Cell_Pose(raw_pose_data, grid)
                 # print 'Robot cell pose: %s' %str(cell_pose_data)
                 next_state = Find_Next_State(prod_dra_edges, tuple(current_state), next_action_name, cell_pose_data)
                 current_state = tuple(next_state)
-                print 'Next state %s' %str(current_state)
-            print 'System trajectory:', X
-            print 'Control actions:', U
+                print('Next state %s' %str(current_state))
+            print('System trajectory:', X)
+            print('Control actions:', U)
             pickle.dump((X,U), open("v_rep_results_X_U.p","wb"))
         # End the simulation, wait to be sure V-REP had the time to stop it entirely            
         vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot_wait)
@@ -101,7 +101,7 @@ def connect_vrep(T=100):
         # http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxFinish
         vrep.simxFinish(clientID)
     else:
-        print 'Failed connecting to remote API server'
+        print('Failed connecting to remote API server')
     print ('End connection')
 
     
@@ -128,7 +128,7 @@ def execute_action(clientID, RobotHandle, LMotorHandle, RMotorHandle, raw_pose_d
         vrep.simxSetJointTargetVelocity(clientID, LMotorHandle, l_ang_v, vrep.simx_opmode_streaming)
         vrep.simxSetJointTargetVelocity(clientID, RMotorHandle, r_ang_v, vrep.simx_opmode_streaming)
         #print 'distance_x_y:%s; angle_dif:%s' %(str(distance(raw_pose_data, goal_pose)),str(abs(raw_pose_data[2]-goal_pose[2])))
-    print 'Goal pose reached!'
+    print('Goal pose reached!')
     # vrep.simxSetJointTargetVelocity(clientID, LMotorHandle, 0, vrep.simx_opmode_blocking)
     # vrep.simxSetJointTargetVelocity(clientID, RMotorHandle, 0, vrep.simx_opmode_blocking)
     # time.sleep(0.5)
@@ -232,7 +232,7 @@ def Find_Goal(cell_pose, grid, action_name):
     # print '----------------------------------------'
     # print 'start_pose: %s, relative_G_pose: %s' %(str(start_pose), str(G_pose))
     # print '----------------------------------------'
-    goal_pose = [start_pose[i]+G_pose[i] for i in xrange(0,3)]
+    goal_pose = [start_pose[i]+G_pose[i] for i in range(0,3)]
     if goal_pose[2] > 1.0*PI:
         goal_pose[2] -= 2.0*PI
     if goal_pose[2] < -1.0*PI:
@@ -330,34 +330,34 @@ def Raw_To_Cell_Pose(raw_pose, grid):
 def Find_Action(best_plan, prod_state):
     # choose action according to the optimal policy
     # best_plan = [plan_prefix, prefix_cost, prefix_risk, y_in_sf], [plan_suffix, suffix_cost, suffix_risk], [MEC[0], MEC[1], Sr, Sd], plan_bad]
-    print '------Choose action according to the optimal policy------'
-    print 'current_state', prod_state
+    print('------Choose action according to the optimal policy------')
+    print('current_state', prod_state)
     plan_prefix = best_plan[0][0]
     plan_suffix = best_plan[1][0]
     plan_bad = best_plan[3]
     if (prod_state in plan_prefix):
-        print 'In prefix'
+        print('In prefix')
         U = plan_prefix[prod_state][0]
         P = plan_prefix[prod_state][1]
         next_segment = 0
     elif (prod_state in plan_suffix):
-        print 'In suffix'
+        print('In suffix')
         U = plan_suffix[prod_state][0]
         P = plan_suffix[prod_state][1]
         next_segment = 1        
     elif (prod_state in plan_bad):
-        print 'In bad states'        
+        print('In bad states')        
         U = plan_bad[prod_state][0]
         P = plan_bad[prod_state][1]
         next_segment = 2
-    print 'U:%s, P:%s' %(str(U), str(P))
+    print('U:%s, P:%s' %(str(U), str(P)))
     rdn = random.random()
     pc = 0
     for k, p in enumerate(P):
         pc += p
         if pc>rdn:
             break
-    print 'Action Chosen: %s' %str(U[k])
+    print('Action Chosen: %s' %str(U[k]))
     next_action_name = U[k]        
     return next_action_name, next_segment
 
@@ -366,13 +366,13 @@ def Find_Next_State(prod_dra_edges, current_state, next_action_name, cell_pose):
     S = []
     P = []
     k = -1
-    for (f_state, t_state) in prod_dra_edges.iterkeys():
+    for (f_state, t_state) in prod_dra_edges.keys():
         if f_state == current_state:
             # print 'edge:', (f_state, t_state)
             prop = prod_dra_edges[(f_state, t_state)]
             # print 'prop of edge:', prop
             # print 'next_action_name', next_action_name
-            if ((next_action_name in prop.keys()) and (t_state[0] == tuple(cell_pose))):
+            if ((next_action_name in list(prop.keys())) and (t_state[0] == tuple(cell_pose))):
                 S.append(t_state)
                 P.append(prop[next_action_name][0])
                 # print 'S:', S
@@ -386,9 +386,9 @@ def Find_Next_State(prod_dra_edges, current_state, next_action_name, cell_pose):
     if k >= 0:
         next_state = tuple(S[k])
     else:
-        print '----------------------------------------'
-        print 'check your plan, NO next state can be found!!!'
-        print '----------------------------------------'        
+        print('----------------------------------------')
+        print('check your plan, NO next state can be found!!!')
+        print('----------------------------------------')        
         next_state = current_state
     return next_state
 

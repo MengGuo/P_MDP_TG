@@ -13,7 +13,7 @@ WS_d = 0.25
 grid = WS_d*2    # grid size
 
 ######
-edges = motion_mdp_edges.keys()
+edges = list(motion_mdp_edges.keys())
 states = [e[0] for e in edges] + [e[1] for e in edges]
 states_x = [s[0] for s in states]
 states_y = [s[1] for s in states]

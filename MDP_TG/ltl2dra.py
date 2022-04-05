@@ -6,7 +6,7 @@ from subprocess import check_output
 from codecs import getdecoder
 from argparse import ArgumentParser
 
-from promela import Parser
+from .promela import Parser
 
 # cmd line example 
 # echo "& F G a "F G b"" | ./ltl2dstar --ltl2nba=spin:ltl2ba --stutter=no - -
@@ -36,13 +36,13 @@ if __name__ == "__main__":
     ltl2dra_output = run_ltl2dra(args.LTL)
     parser = Parser(ltl2dra_output)
     states, init, edges, aps, acc = parser.parse()
-    print "-----state number-----"
-    print states
-    print "-----init state-----"
-    print init
-    print "-----edges-----"    
-    print edges
-    print "-----aps-----"
-    print aps
-    print "-----acc pairs-----"
-    print acc
+    print("-----state number-----")
+    print(states)
+    print("-----init state-----")
+    print(init)
+    print("-----edges-----")    
+    print(edges)
+    print("-----aps-----")
+    print(aps)
+    print("-----acc pairs-----")
+    print(acc)

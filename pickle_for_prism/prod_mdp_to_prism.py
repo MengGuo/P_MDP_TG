@@ -36,11 +36,11 @@ for x in range(0,N):
         if node not in WS_node_dict:
             WS_node_dict[node] = {frozenset(): 1.0,}
     
-print 'WS_node_dict_size', len(WS_node_dict)
+print('WS_node_dict_size', len(WS_node_dict))
 
 #------------------------------------
 robot_nodes = dict()
-for loc, prop in WS_node_dict.iteritems():
+for loc, prop in WS_node_dict.items():
     for d in ['N', 'S', 'E', 'W']:
         robot_nodes[(loc[0], loc[1], d)] = prop
 #------------------------------------        
@@ -56,7 +56,7 @@ P_TL = [0.05, 0.9, 0.05]
 P_ST = [0.005, 0.99, 0.005]
 #-------------
 robot_edges = dict()
-for fnode in robot_nodes.iterkeys():
+for fnode in robot_nodes.keys():
     fx = fnode[0]
     fy = fnode[1]
     fd = fnode[2]
@@ -72,7 +72,7 @@ for fnode in robot_nodes.iterkeys():
     if fd == 'W':
         t_nodes = [(fx-2, fy-2, fd), (fx-2, fy, fd), (fx-2, fy+2, fd)]
     for k, tnode in enumerate(t_nodes):
-        if tnode in robot_nodes.keys():
+        if tnode in list(robot_nodes.keys()):
             robot_edges[(fnode, u, tnode)] = (P_FR[k], c)
     # action BK
     u = U[1]
@@ -86,7 +86,7 @@ for fnode in robot_nodes.iterkeys():
     if fd == 'W':
         t_nodes = [(fx+2, fy-2, fd), (fx+2, fy, fd), (fx+2, fy+2, fd)]                
     for k, tnode in enumerate(t_nodes):
-        if tnode in robot_nodes.keys():
+        if tnode in list(robot_nodes.keys()):
             robot_edges[(fnode, u, tnode)] = (P_BK[k], c)
     # action TR
     u = U[2]
@@ -100,7 +100,7 @@ for fnode in robot_nodes.iterkeys():
     if fd == 'W':
         t_nodes = [(fx, fy, 'W'), (fx, fy, 'N'), (fx, fy, 'E')]
     for k, tnode in enumerate(t_nodes):
-        if tnode in robot_nodes.keys():
+        if tnode in list(robot_nodes.keys()):
             robot_edges[(fnode, u, tnode)] = (P_TR[k], c)
     # action TL
     u = U[3]
@@ -114,7 +114,7 @@ for fnode in robot_nodes.iterkeys():
     if fd == 'E':
         t_nodes = [(fx, fy, 'E'), (fx, fy, 'N'), (fx, fy, 'W')]
     for k, tnode in enumerate(t_nodes):
-        if tnode in robot_nodes.keys():
+        if tnode in list(robot_nodes.keys()):
             robot_edges[(fnode, u, tnode)] = (P_TL[k], c)
     # action ST
     u = U[4]
@@ -128,13 +128,13 @@ for fnode in robot_nodes.iterkeys():
     if fd == 'E':
         t_nodes = [(fx, fy, 'N'), (fx, fy, 'E'), (fx, fy, 'S')]   
     for k, tnode in enumerate(t_nodes):
-        if tnode in robot_nodes.keys():
+        if tnode in list(robot_nodes.keys()):
             robot_edges[(fnode, u, tnode)] = (P_ST[k], c)                    
 #----
 motion_mdp = Motion_MDP(robot_nodes, robot_edges, U, initial_node, initial_label)
 t2 = time.time()
-print '------------------------------'
-print 'MDP done, time: %s' %str(t2-t0)
+print('------------------------------')
+print('MDP done, time: %s' %str(t2-t0))
 
 #----
 all_base = '& G F base1 & G F base2 G F base3'
@@ -146,21 +146,21 @@ task2 = '& %s G F supply' %all_base
 task3 = '& %s %s' %(all_base, order2)
 dra = Dra(all_base)
 t3 = time.time()
-print '------------------------------'
-print 'DRA done, time: %s' %str(t3-t2)
+print('------------------------------')
+print('DRA done, time: %s' %str(t3-t2))
 
 #----
 prod_dra = Product_Dra(motion_mdp, dra)
 t41 = time.time()
-print '------------------------------'
-print 'Product DRA done, time: %s' %str(t41-t3)
+print('------------------------------')
+print('Product DRA done, time: %s' %str(t41-t3))
 #----
 prod_dra.compute_S_f()
 t42 = time.time()
-print '------------------------------'
-print 'Compute MEC done, time: %s' %str(t42-t41)
+print('------------------------------')
+print('Compute MEC done, time: %s' %str(t42-t41))
 
-print '------------------------------'
+print('------------------------------')
 t43 = time.time()
 clean_prod_dra = dict()
 clean_prod_dra['name'] = 'size%d_all_base' %N
@@ -171,5 +171,5 @@ clean_prod_dra['edge_prop'] = networkx.get_edge_attributes(prod_dra,'prop')
 clean_prod_dra['accept'] = prod_dra.graph['accept']
 
 pickle.dump(clean_prod_dra,open('nx_prod_mdp_model.p','wb'))
-print '------------------------------'
-print 'Save to clean pickle data, time: %s' %str(t43-t42)
+print('------------------------------')
+print('Save to clean pickle data, time: %s' %str(t43-t42))

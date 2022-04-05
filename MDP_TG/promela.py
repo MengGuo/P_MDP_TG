@@ -54,7 +54,7 @@ class Parser(object):
         self.statesnum = int(self.accept(Parser.totstate_regex)["totstate_number"])
         self.pairsnum = int(self.accept(Parser.totacc_regex)["pairs_number"])
         acc_pair = []
-        for k in xrange(0,int(self.pairsnum)):
+        for k in range(0,int(self.pairsnum)):
             acc_pair.append([set(),set()])
         self.init_state = int(self.accept(Parser.start_regex)["start_state"])
         self.apnum = int(self.accept(Parser.apnum_regex)["ap_number"])
@@ -90,7 +90,7 @@ class Parser(object):
             k = 0
             while edge != None:
                 to_state = int(edge["dest"])
-                if (state_name, to_state) in edges.keys():
+                if (state_name, to_state) in list(edges.keys()):
                     edges[(state_name, to_state)].append(str(bin(k))[2:].zfill(self.apnum))
                 else:
                     edges[(state_name, to_state)] = [str(bin(k))[2:].zfill(self.apnum),]

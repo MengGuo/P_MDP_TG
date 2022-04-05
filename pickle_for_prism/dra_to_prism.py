@@ -17,11 +17,11 @@ task2 = '& %s G F supply' %all_base
 task3 = '& %s %s' %(all_base, order2)
 dra = Dra(all_base)
 t1 = time.time()
-print '------------------------------'
-print 'DRA done, time: %s' %str(t1-t0)
+print('------------------------------')
+print('DRA done, time: %s' %str(t1-t0))
 
 
-print '------------------------------'
+print('------------------------------')
 t2 = time.time()
 clean_dra = dict()
 clean_dra['name'] = 'dra_all_base'
@@ -32,5 +32,5 @@ clean_dra['edge_guard'] = networkx.get_edge_attributes(dra,'guard_string')
 clean_dra['accept'] = dra.graph['accept']
 
 pickle.dump(clean_dra,open('nx_dra_model.p','wb'))
-print '------------------------------'
-print 'Save to clean pickle data, time: %s' %str(t2-t1)
+print('------------------------------')
+print('Save to clean pickle data, time: %s' %str(t2-t1))

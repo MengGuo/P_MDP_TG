@@ -78,15 +78,15 @@ allowed_risk = 0.0
 best_all_plan = syn_full_plan(prod_dra, allowed_risk)
 
 #----------------------------------------
-print "----------------------------------------"
-print "||||||||Simulation start||||||||||||||||"
-print "----------------------------------------"
+print("----------------------------------------")
+print("||||||||Simulation start||||||||||||||||")
+print("----------------------------------------")
 total_T = 20
 state_seq = [initial_node,]
 label_seq = [initial_label,]
 N = 5
 n = 0
-print "Try %s simulations of length %s" %(str(N), str(total_T))
+print("Try %s simulations of length %s" %(str(N), str(total_T)))
 
 XX = []
 LL = []
@@ -95,14 +95,14 @@ MM = []
 PP = []
 
 while (n < N):
-    print '=======simulation %s starts=======' %str(n)
+    print('=======simulation %s starts=======' %str(n))
     X, L, U, M, PX = prod_dra.execution(best_all_plan, total_T, state_seq, label_seq)
     # print 'Product State trajectory: %s' %str(PX)
     # print 'State trajectory: %s' %str(X)
     # print 'Label trajectory: %s' %str(L)
     # print 'Control Actions: %s' %str(U)
     # print 'Marker sequence: %s' %str(M)
-    print '=======simulation %s ends=======' %str(n)
+    print('=======simulation %s ends=======' %str(n))
     XX.append(X)
     LL.append(L)
     UU.append(U)
