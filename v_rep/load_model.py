@@ -2,7 +2,7 @@ import pickle
 
 best_plan = pickle.load(open('best_plan.p', 'rb'))
 
-prod_dra_edges, initial_state  = pickle.load(open('prod_dra_edges.p', 'rb'))
+prod_dra_edges, initial_state = pickle.load(open('prod_dra_edges.p', 'rb'))
 
 WS_node_dict, WS_d = pickle.load(open('ws_model.p', 'rb'))
 

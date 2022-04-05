@@ -8,55 +8,55 @@ import time
 
 t0 = time.time()
 
-#-------- real example -------
+# -------- real example -------
 WS_node_dict = {
     # base stations
-    (9.0, 1.0): {frozenset(['base1','base']): 1.0,
-           frozenset(): 0.0,},
-    (9.0, 9.0): {frozenset(['base2','base']): 1.0,
-           frozenset(): 0.0,},
-    (1.0, 9.0): {frozenset(['base3','base']): 1.0,
-           frozenset(): 0.0,},
-    (3.0, 3.0): {frozenset(): 1.0,},
-    (3.0, 5.0): {frozenset(): 1.0,},
-    (7.0, 5.0): {frozenset(): 1.0,},
-    (3.0, 9.0): {frozenset(): 1.0,},
-    (3.0, 7.0): {frozenset(): 1.0,},    
-    (1.0, 5.0): {frozenset(['supply',]): 0.8,
-           frozenset(): 0.2,},
-    (5.0, 3.0): {frozenset(['supply',]): 0.2,
-           frozenset(): 0.8,},
-    (9.0, 5.0): {frozenset(['supply',]): 0.5,
-           frozenset(): 0.5,},
-    (5.0, 9.0): {frozenset(['supply',]): 0.5,
-           frozenset(): 0.5,},
-    (1.0, 3.0): {frozenset(): 1.0,},
-    (1.0, 1.0): {frozenset(): 1.0,},
-    (1.0, 7.0): {frozenset(): 1.0,},
-    (3.0, 1.0): {frozenset(): 1.0,},
-    (5.0, 1.0): {frozenset(): 1.0,},
-    (7.0, 1.0): {frozenset(): 1.0,},
-    (5.0, 1.0): {frozenset(['obstacle',]): 0.99,
-                 frozenset(): 0.01,},
-    (7.0, 3.0): {frozenset(): 1.0,},
-    (5.0, 5.0): {frozenset(): 1.0,},
-    (5.0, 7.0): {frozenset(): 1.0,},
-    (7.0, 7.0): {frozenset(): 1.0,},
-    (7.0, 9.0): {frozenset(): 1.0,},
-    (9.0, 3.0): {frozenset(): 1.0,},
-    (9.0, 7.0): {frozenset(): 1.0,},                        
+    (9.0, 1.0): {frozenset(['base1', 'base']): 1.0,
+                 frozenset(): 0.0, },
+    (9.0, 9.0): {frozenset(['base2', 'base']): 1.0,
+                 frozenset(): 0.0, },
+    (1.0, 9.0): {frozenset(['base3', 'base']): 1.0,
+                 frozenset(): 0.0, },
+    (3.0, 3.0): {frozenset(): 1.0, },
+    (3.0, 5.0): {frozenset(): 1.0, },
+    (7.0, 5.0): {frozenset(): 1.0, },
+    (3.0, 9.0): {frozenset(): 1.0, },
+    (3.0, 7.0): {frozenset(): 1.0, },
+    (1.0, 5.0): {frozenset(['supply', ]): 0.8,
+                 frozenset(): 0.2, },
+    (5.0, 3.0): {frozenset(['supply', ]): 0.2,
+                 frozenset(): 0.8, },
+    (9.0, 5.0): {frozenset(['supply', ]): 0.5,
+                 frozenset(): 0.5, },
+    (5.0, 9.0): {frozenset(['supply', ]): 0.5,
+                 frozenset(): 0.5, },
+    (1.0, 3.0): {frozenset(): 1.0, },
+    (1.0, 1.0): {frozenset(): 1.0, },
+    (1.0, 7.0): {frozenset(): 1.0, },
+    (3.0, 1.0): {frozenset(): 1.0, },
+    (5.0, 1.0): {frozenset(): 1.0, },
+    (7.0, 1.0): {frozenset(): 1.0, },
+    (5.0, 1.0): {frozenset(['obstacle', ]): 0.99,
+                 frozenset(): 0.01, },
+    (7.0, 3.0): {frozenset(): 1.0, },
+    (5.0, 5.0): {frozenset(): 1.0, },
+    (5.0, 7.0): {frozenset(): 1.0, },
+    (7.0, 7.0): {frozenset(): 1.0, },
+    (7.0, 9.0): {frozenset(): 1.0, },
+    (9.0, 3.0): {frozenset(): 1.0, },
+    (9.0, 7.0): {frozenset(): 1.0, },
 }
 
-#----
+# ----
 # visualize_world(WS_d, WS_node_dict, 'world')
 # t1 = time.time()
 # print 'visualize world done, time: %s' %str(t1-t0)
-#------------------------------------
+# ------------------------------------
 robot_nodes = dict()
 for loc, prop in WS_node_dict.items():
     for d in ['N', 'S', 'E', 'W']:
         robot_nodes[(loc[0], loc[1], d)] = prop
-#------------------------------------        
+# ------------------------------------
 initial_node = (1.0, 1.0, 'N')
 initial_label = frozenset()
 
@@ -64,13 +64,13 @@ U = [tuple('FR'), tuple('BK'), tuple('TR'), tuple('TL'), tuple('ST')]
 C = [2, 4, 3, 3, 1]
 COST = dict()
 for k, u in enumerate(U):
-    COST[U[k]] = C[k]    
+    COST[U[k]] = C[k]
 P_FR = [0.1, 0.8, 0.1]
 P_BK = [0.15, 0.7, 0.15]
 P_TR = [0.05, 0.9, 0.05]
 P_TL = [0.05, 0.9, 0.05]
 P_ST = [0.005, 0.99, 0.005]
-#-------------
+# -------------
 robot_edges = dict()
 for fnode in robot_nodes.keys():
     fx = fnode[0]
@@ -100,7 +100,7 @@ for fnode in robot_nodes.keys():
     if fd == 'E':
         t_nodes = [(fx-2, fy-2, fd), (fx-2, fy, fd), (fx-2, fy+2, fd)]
     if fd == 'W':
-        t_nodes = [(fx+2, fy-2, fd), (fx+2, fy, fd), (fx+2, fy+2, fd)]                
+        t_nodes = [(fx+2, fy-2, fd), (fx+2, fy, fd), (fx+2, fy+2, fd)]
     for k, tnode in enumerate(t_nodes):
         if tnode in list(robot_nodes.keys()):
             robot_edges[(fnode, u, tnode)] = (P_BK[k], c)
@@ -142,55 +142,56 @@ for fnode in robot_nodes.keys():
     if fd == 'W':
         t_nodes = [(fx, fy, 'S'), (fx, fy, 'W'), (fx, fy, 'N')]
     if fd == 'E':
-        t_nodes = [(fx, fy, 'N'), (fx, fy, 'E'), (fx, fy, 'S')]   
+        t_nodes = [(fx, fy, 'N'), (fx, fy, 'E'), (fx, fy, 'S')]
     for k, tnode in enumerate(t_nodes):
         if tnode in list(robot_nodes.keys()):
-            robot_edges[(fnode, u, tnode)] = (P_ST[k], c)                    
-#----
-motion_mdp = Motion_MDP(robot_nodes, robot_edges, U, initial_node, initial_label)
+            robot_edges[(fnode, u, tnode)] = (P_ST[k], c)
+# ----
+motion_mdp = Motion_MDP(robot_nodes, robot_edges, U,
+                        initial_node, initial_label)
 t2 = time.time()
-print('MDP done, time: %s' %str(t2-t0))
+print('MDP done, time: %s' % str(t2-t0))
 
-#----
+# ----
 ordered_reach = '& F G base3 & F base1 & F base2 & F base3 G ! obstacle'
 all_base = '& G F base1 & G F base2 & G F base3 G ! obstacle'
 order1 = 'G i supply X U ! supply base'
 order2 = 'G i base X U ! base supply'
-order = '& %s %s' %(order1, order2)
-task1 = '& %s & G ! obstacle %s' %(all_base, order2)
-task2 = '& %s G F supply' %all_base
-task3 = '& %s %s' %(all_base, order2)
+order = '& %s %s' % (order1, order2)
+task1 = '& %s & G ! obstacle %s' % (all_base, order2)
+task2 = '& %s G F supply' % all_base
+task3 = '& %s %s' % (all_base, order2)
 dra = Dra(task1)
 t3 = time.time()
-print('DRA done, time: %s' %str(t3-t2))
+print('DRA done, time: %s' % str(t3-t2))
 
-#----
+# ----
 prod_dra = Product_Dra(motion_mdp, dra)
-#prod_dra.dotify()
+# prod_dra.dotify()
 t41 = time.time()
-print('Product DRA done, time: %s' %str(t41-t3))
-#----
+print('Product DRA done, time: %s' % str(t41-t3))
+# ----
 prod_dra.compute_S_f()
 t42 = time.time()
-print('Compute accepting MEC done, time: %s' %str(t42-t41))
+print('Compute accepting MEC done, time: %s' % str(t42-t41))
 
-#------
+# ------
 gamma = 0.0
-alpha=0.0
-best_all_plan = syn_full_plan_comb(prod_dra, gamma,alpha)
+alpha = 0.0
+best_all_plan = syn_full_plan_comb(prod_dra, gamma, alpha)
 t5 = time.time()
-print('Plan synthesis done, time: %s' %str(t5-t42))
+print('Plan synthesis done, time: %s' % str(t5-t42))
 
-#----------------------------------------
+# ----------------------------------------
 print("----------------------------------------")
 print("||||||||Simulation start||||||||||||||||")
 print("----------------------------------------")
 total_T = 500
-state_seq = [initial_node,]
-label_seq = [initial_label,]
+state_seq = [initial_node, ]
+label_seq = [initial_label, ]
 N = 100
 n = 0
-print("Try %s simulations of length %s" %(str(N), str(total_T)))
+print("Try %s simulations of length %s" % (str(N), str(total_T)))
 
 XX = []
 LL = []
@@ -199,14 +200,15 @@ MM = []
 PP = []
 
 while (n < N):
-    #print '=======simulation %s starts=======' %str(n)
-    X, L, U, M, PX = prod_dra.execution(best_all_plan, total_T, state_seq, label_seq)
+    # print '=======simulation %s starts=======' %str(n)
+    X, L, U, M, PX = prod_dra.execution(
+        best_all_plan, total_T, state_seq, label_seq)
     # print 'Product State trajectory: %s' %str(PX)
     # print 'State trajectory: %s' %str(X)
     # print 'Label trajectory: %s' %str(L)
     # print 'Control Actions: %s' %str(U)
     # print 'Marker sequence: %s' %str(M)
-    #print '=======simulation %s ends=======' %str(n)
+    # print '=======simulation %s ends=======' %str(n)
     XX.append(X)
     LL.append(L)
     UU.append(U)
@@ -216,18 +218,13 @@ while (n < N):
     n += 1
 
 t6 = time.time()
-print('MC simulation done, time: %s' %str(t6-t5))    
-    
+print('MC simulation done, time: %s' % str(t6-t5))
+
 # # visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, 'GFabc')
 # # t7 = time.time()
-# # print 'Visualize paths done, time: %s' %str(t7-t6)    
+# # print 'Visualize paths done, time: %s' %str(t7-t6)
 
 # analyze_events(MM, LL)
 
 mean_cost = compute_suffix_mean_cost(UU, MM, COST)
-print('mean_total_cost_suffix:%s, alpha:%s' %(str(mean_cost),str(alpha)))
-
-
-    
-
-
+print('mean_total_cost_suffix:%s, alpha:%s' % (str(mean_cost), str(alpha)))

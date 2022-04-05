@@ -8,29 +8,34 @@ from argparse import ArgumentParser
 
 from .promela import Parser
 
-# cmd line example 
+# cmd line example
 # echo "& F G a "F G b"" | ./ltl2dstar --ltl2nba=spin:ltl2ba --stutter=no - -
 # echo "G F i a F i b F c" | ./ltl2dstar --ltl2nba=spin:ltl2ba --stutter=no - -
 # echo "F G a" > FGa.ltl
 # ./ltl2dstar --ltl2nba=spin:ltl2ba --stutter=no --output-format=dot --detailed-states=yes FGa.ltl FGa_detailed.dot
 # dot -Tpdf FGa_detailed.dot > FGa_detailed.pdf
 
+
 def run_ltl2dra(formula):
-    #----call ltl2dstar executable----
-    cmd = "echo \"%s\"" % formula + " | " + "./MDP_TG/ltl2dstar " + "--ltl2nba=spin:./MDP_TG/ltl2ba --stutter=no - -"
+    # ----call ltl2dstar executable----
+    cmd = "echo \"%s\"" % formula + " | " + "./MDP_TG/ltl2dstar " + \
+        "--ltl2nba=spin:./MDP_TG/ltl2ba --stutter=no - -"
     raw_output = check_output(cmd, shell=True)
     ascii_decoder = getdecoder("ascii")
     (output, _) = ascii_decoder(raw_output)
     return output
 
+
 def parse_dra(ltl2dra_output):
-    #----parse ouput strings----    
+    # ----parse ouput strings----
     parser = Parser(ltl2dra_output)
     states, init, edges, aps, acc = parser.parse()
     return states, init, edges, aps, acc
 
+
 if __name__ == "__main__":
-    argparser = ArgumentParser(description="Call the ltl2dra program and parse the output")
+    argparser = ArgumentParser(
+        description="Call the ltl2dra program and parse the output")
     argparser.add_argument('LTL')
     args = argparser.parse_args()
     ltl2dra_output = run_ltl2dra(args.LTL)
@@ -40,7 +45,7 @@ if __name__ == "__main__":
     print(states)
     print("-----init state-----")
     print(init)
-    print("-----edges-----")    
+    print("-----edges-----")
     print(edges)
     print("-----aps-----")
     print(aps)
