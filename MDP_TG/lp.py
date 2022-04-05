@@ -2,7 +2,7 @@
 
 from networkx.classes.digraph import DiGraph
 from networkx import single_source_shortest_path
-from gurobipy import *
+from ortools.linear_solver import pywraplp
 
 from collections import defaultdict
 import random
@@ -17,8 +17,8 @@ def syn_full_plan_comb(prod_mdp, gamma, alpha=1):
         plan_fi = syn_plan_comb(prod_mdp, S_fi, gamma, alpha)
         if plan_fi:
             Plan.append(plan_fi)
-        else: 
-            "No valid plan found in S_fi!"
+        else:
+            print("No valid plan found in S_fi!")
     if Plan:
         print("=========================")
         print(" || Final compilation  ||")
@@ -34,7 +34,7 @@ def syn_full_plan_comb(prod_mdp, gamma, alpha=1):
     else:
         print("No valid plan found")
         return None
-    
+
 
 def syn_full_plan(prod_mdp, gamma, alpha=1):
     #----Optimal plan synthesis, total cost over plan prefix and suffix----
@@ -56,8 +56,8 @@ def syn_full_plan(prod_mdp, gamma, alpha=1):
         if plan:
             best_k_plan = min(plan, key=lambda p: p[0][1] + alpha*p[1][1])
             Plan.append(best_k_plan)
-        else: 
-            "No valid found!"
+        else:
+            print("No valid found!")
     if Plan:
         print("=========================")
         print(" || Final compilation  ||")
@@ -78,7 +78,7 @@ def syn_full_plan(prod_mdp, gamma, alpha=1):
 
 
 def syn_full_plan_rex(prod_mdp, gamma, d, alpha=1):
-    #----Relaxed optimal plan synthesis, total cost over plan prefix and suffix----    
+    #----Relaxed optimal plan synthesis, total cost over plan prefix and suffix----
     print("==========[Relaxed full plan synthesis start]")
     Plan = []
     for l, S_fi in enumerate(prod_mdp.Sf):
@@ -97,7 +97,7 @@ def syn_full_plan_rex(prod_mdp, gamma, d, alpha=1):
         if plan:
             best_k_plan = min(plan, key=lambda p: p[0][1] + alpha*p[1][1])
             Plan.append(best_k_plan)
-        else: 
+        else:
             "No valid found!"
     if Plan:
         print("=========================")
@@ -116,12 +116,12 @@ def syn_full_plan_rex(prod_mdp, gamma, d, alpha=1):
         print("No valid plan found")
         return None
 
-            
+
 
 def syn_plan_prefix(prod_mdp, MEC, gamma):
     #----Synthesize optimal plan prefix to reach accepting MEC or SCC----
     #----with bounded risk and minimal expected total cost----
-    print("===========[plan prefix synthesis starts]===========")    
+    print("===========[plan prefix synthesis starts]===========")
     sf = MEC[0]
     ip = MEC[1] #force convergence to ip
     delta = 1.0
@@ -144,28 +144,27 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
         print('Sn size: %s; Sd inside size: %s; Sr inside size: %s' %(len(Sn),len(Sd), len(Sr)))
         # ---------solve lp------------
         print('-----')
-        print('Gurobi starts now')
+        print('ORtools starts now')
         print('-----')
         try:
         #if True:
             Y = defaultdict(float)
-            model = Model('plan_prefix')
+            prefix_solver = pywraplp.Solver.CreateSolver('GLOP')
             # create variables
             for s in Sr:
                 for u in prod_mdp.node[s]['act'].copy():
-                    Y[(s,u)] = model.addVar(vtype=GRB.CONTINUOUS,lb=0, name='y[(%s, %s)]' %(s, u))
-            model.update()
+                    Y[(s,u)] = prefix_solver.NumVar(0, 1000, 'y[(%s, %s)]' %(s, u))
             print('Variables added')
             # set objective
             obj = 0
-            for s in Sr:                
+            for s in Sr:
                 for t in prod_mdp.successors_iter(s):
                     prop = prod_mdp.edge[s][t]['prop'].copy()
                     for u in prop.keys():
                         pe = prop[u][0]
                         ce = prop[u][1]
                         obj += Y[(s,u)]*pe*ce
-            model.setObjective(obj, GRB.MINIMIZE)
+            prefix_solver.Minimize(obj)
             print('Objective function set')
             # add constraints
             #------------------------------
@@ -175,22 +174,22 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
                 for t in prod_mdp.successors_iter(s):
                     if t in Sd:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sd += Y[(s,u)]*pe
                     elif t in sf:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sf += Y[(s,u)]*pe
-            model.addConstr(y_to_sf+y_to_sd >= delta, 'sum_out')
-            model.addConstr(y_to_sf >= (1.0-gamma)*(y_to_sf+y_to_sd), 'risk')            
+            prefix_solver.Add(y_to_sf+y_to_sd >= delta)
+            prefix_solver.Add(y_to_sf >= (1.0-gamma)*(y_to_sf+y_to_sd))
             print('Risk constraint added')
             #--------------------
             for t in Sr:
                 node_y_in = 0.0
                 node_y_out = 0.0
-                for u in prod_mdp.node[t]['act']:   
+                for u in prod_mdp.node[t]['act']:
                     node_y_out += Y[(t,u)]
                 for f in prod_mdp.predecessors_iter(t):
                     if f in Sr:
@@ -198,40 +197,44 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
                         for uf in prop.keys():
                             node_y_in += Y[(f,uf)]*prop[uf][0]
                 if t == init_node:
-                    model.addConstr(node_y_out == 1.0 + node_y_in, 'init_node_flow_balance')
+                    prefix_solver.Add(node_y_out == 1.0 + node_y_in)
 
                 else:
-                    model.addConstr(node_y_out == node_y_in, 'middle_node_flow_balance')
+                    prefix_solver.Add(node_y_out == node_y_in)
             print('Initial node flow balanced')
             print('Middle node flow balanced')
             #----------------------
             # solve
             print('--optimization starts--')
-            model.optimize()
-            # print '--variables value--'
-            # for v in model.getVars():
-            #     print v.varName, v.x
-            # print 'obj:', model.objVal
-            #------------------------------
-            # compute plan prefix given the LP solution
+            status = prefix_solver.Solve()
+            if status == pywraplp.Solver.OPTIMAL:
+                print('Solution:')
+                print('Objective value =', prefix_solver.Objective().Value())
+                print('\nAdvanced usage:')
+                print('Problem solved in %f milliseconds' % prefix_solver.wall_time())
+                print('Problem solved in %d iterations' % prefix_solver.iterations())
+            else:
+                print('The problem does not have an optimal solution.')
+                return None, None, None, None, None, None
+            # plan
             plan_prefix = dict()
             for s in Sr:
                 norm = 0
                 U = []
                 P = []
-                U_total = prod_mdp.node[s]['act'].copy()          
+                U_total = prod_mdp.node[s]['act'].copy()
                 for u in U_total:
-                    norm += Y[(s,u)].X
+                    norm += Y[(s,u)].solution_value()
                 for u in U_total:
                     U.append(u)
                     if norm > 0.01:
-                        P.append(Y[(s,u)].X/norm)
+                        P.append(Y[(s,u)].solution_value()/norm)
                     else:
                         P.append(1.0/len(U_total))
                 plan_prefix[s] = [U, P]
             print("----Prefix plan generated")
-            cost = model.objval
-            print("----Prefix cost computed")
+            cost = prefix_solver.Objective().Value()
+            print("----Prefix cost computed, cost: %.2f" % cost)
             # compute the risk given the plan prefix
             risk = 0.0
             y_to_sd = 0.0
@@ -240,14 +243,14 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
                 for t in prod_mdp.successors_iter(s):
                     if t in Sd:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
-                            y_to_sd += Y[(s,u)].X*pe
+                            y_to_sd += Y[(s,u)].solution_value()*pe
                     elif t in sf:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
-                            y_to_sf += Y[(s,u)].X*pe
+                            y_to_sf += Y[(s,u)].solution_value()*pe
             if (y_to_sd+y_to_sf) >0:
                 risk = y_to_sd/(y_to_sd+y_to_sf)
             print('y_to_sd: %s; y_to_sd+y_to_sf: %s' %(y_to_sd, y_to_sd+y_to_sf))
@@ -261,9 +264,9 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
                         for u in prop.keys():
                             pe = prop[u][0]
                             if t not in y_in_sf:
-                                y_in_sf[t] = Y[(s,u)].X*pe
+                                y_in_sf[t] = Y[(s,u)].solution_value()*pe
                             else:
-                                y_in_sf[t] += Y[(s,u)].X*pe
+                                y_in_sf[t] += Y[(s,u)].solution_value()*pe
             # normalize the input flow
             y_total = 0.0
             for s, y in y_in_sf.items():
@@ -276,14 +279,14 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
             #print y_in_sf
             return plan_prefix, cost, risk, y_in_sf, Sr, Sd
         except GurobiError:
-            print("Gurobi Error reported")
+            print("ORTools Error reported")
             return None, None, None, None, None, None
 
 
 def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
     #----Synthesize optimal plan suffix to stay within the accepting MEC----
     #----with minimal expected total cost of accepting cyclic paths----
-    print("===========[plan suffix synthesis starts]")    
+    print("===========[plan suffix synthesis starts]")
     sf = MEC[0]
     ip = MEC[1]
     act = MEC[2].copy()
@@ -302,13 +305,13 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
         print('------')
         try:
             Y = defaultdict(float)
+            suffix_solver = pywraplp.Solver.CreateSolver('GLOP')
             model = Model('plan_suffix')
             # create variables
             for s in Sn:
                 for u in act[s]:
-                    Y[(s,u)] = model.addVar(vtype=GRB.CONTINUOUS,lb=0, name='y[(%s, %s)]' %(s, u))
-            model.update()
-            print('Variables added')
+                    Y[(s,u)] = model.addVar(0, 1000, 'y[(%s, %s)]' %(s, u))
+            print('Variables added: %d' % len(Y))
             # set objective
             obj = 0
             for s in Sn:
@@ -319,7 +322,7 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
                             pe = prop[u][0]
                             ce = prop[u][1]
                             obj += Y[(s,u)]*pe*ce
-            model.setObjective(obj, GRB.MINIMIZE)
+            suffix_solver.Minimize(obj)
             print('Objective added')
             # add constraints
             #--------------------
@@ -332,25 +335,25 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
                     if (f in Sn) and (s not in ip):
                         prop = prod_mdp.edge[f][s]['prop'].copy()
                         for uf in act[f]:
-                            if uf in list(prop.keys()):  
+                            if uf in list(prop.keys()):
                                 constr4 += Y[(f,uf)]*prop[uf][0]
                             else:
                                 constr4 += Y[(f,uf)]*0.00
                     if (f in Sn) and (s in ip) and (f != s):
                         prop = prod_mdp.edge[f][s]['prop'].copy()
                         for uf in act[f]:
-                            if uf in list(prop.keys()):  
+                            if uf in list(prop.keys()):
                                 constr4 += Y[(f,uf)]*prop[uf][0]
                             else:
                                 constr4 += Y[(f,uf)]*0.00
                 if (s in list(y_in_sf.keys())) and (s not in ip):
-                    model.addConstr(constr3 == constr4 + y_in_sf[s], 'balance_with_y_in')
+                    suffix_solver.Add(constr3 == constr4 + y_in_sf[s])
                 if (s in list(y_in_sf.keys())) and (s in ip):
-                    model.addConstr(constr3 == y_in_sf[s], 'balance_with_y_in')
+                    suffix_solver.Add(constr3 == y_in_sf[s])
                 if (s not in list(y_in_sf.keys())) and (s not in ip):
-                    model.addConstr(constr3 == constr4, 'balance')
+                    suffix_solver.Add(constr3 == constr4)
             print('Balance condition added')
-            print('Initial sf condition added')            
+            print('Initial sf condition added')
             #--------------------
             y_to_ip = 0.0
             y_out = 0.0
@@ -368,17 +371,22 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
                             if u in act[s]:
                                 pe = prop[u][0]
                                 y_to_ip += Y[(s,u)]*pe
-            model.addConstr(y_to_ip+y_out >= delta, 'sum_out')
-            model.addConstr(y_to_ip >= (1.0-gamma)*(y_to_ip+y_out), 'risk')
+            suffix_solver.Add(y_to_ip+y_out >= delta)
+            suffix_solver.Add(y_to_ip >= (1.0-gamma)*(y_to_ip+y_out))
             print('Risk constraint added')
             #------------------------------
             # solve
-            model.optimize()
-            # print '--variables value--'
-            # for v in model.getVars():
-            #     print v.varName, v.x
-            # print 'obj:', model.objVal
-            #------------------------------
+            print('--optimization starts--')
+            status = suffix_solver.Solve()
+            if status == pywraplp.Solver.OPTIMAL:
+                print('Solution:')
+                print('Objective value =', suffix_solver.Objective().Value())
+                print('Advanced usage:')
+                print('Problem solved in %f milliseconds' % suffix_solver.wall_time())
+                print('Problem solved in %d iterations' % suffix_solver.iterations())
+            else:
+                print('The problem does not have an optimal solution.')
+                return None, None, None
             # compute optimal plan suffix given the LP solution
             plan_suffix = dict()
             for s in Sn:
@@ -386,16 +394,16 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
                 U = []
                 P = []
                 for u in act[s]:
-                    norm += Y[(s,u)].X
+                    norm += Y[(s,u)].solution_value()
                 for u in act[s]:
                     U.append(u)
                     if norm > 0.01:
-                        P.append(Y[(s,u)].X/norm)
+                        P.append(Y[(s,u)].solution_value()/norm)
                     else:
-                        P.append(1.0/len(act[s])) 
+                        P.append(1.0/len(act[s]))
                 plan_suffix[s] = [U, P]
             print("----Suffix plan added")
-            cost = model.objval
+            cost = suffix_solver.Objective().Value()
             print("----Suffix cost computed")
             # compute risk given the plan suffix
             risk = 0.0
@@ -408,30 +416,29 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
-                                y_out += Y[(s,u)].X*pe
+                                y_out += Y[(s,u)].solution_value()*pe
                     elif t in ip:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
-                                y_to_ip += Y[(s,u)].X*pe
+                                y_to_ip += Y[(s,u)].solution_value()*pe
             if (y_to_ip+y_out)>0:
                 risk = y_out/(y_to_ip+y_out)
-            print('y_out: %s; y_to_ip+y_out: %s' %(y_out, y_to_ip+y_out))                
+            print('y_out: %s; y_to_ip+y_out: %s' %(y_out, y_to_ip+y_out))
             print("----Suffix risk computed")
             return plan_suffix, cost, risk
-        except GurobiError:
-            print("Gurobi Error reported")
+        except:
+            print("ORtools Error reported")
             return None, None, None
-
 
 
 
 def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
     #----Synthesize optimal plan suffix to stay within the accepting SCC----
     #----with minimal expected total cost of accepting cyclic paths----
-    #----and penalty over the risk in the suffix 
-    print("===========[plan suffix synthesis starts]")    
+    #----and penalty over the risk in the suffix
+    print("===========[plan suffix synthesis starts]")
     sf = MEC[0]
     ip = MEC[1]
     act = MEC[2].copy()
@@ -483,14 +490,14 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                     if (f in Sn) and (s not in ip):
                         prop = prod_mdp.edge[f][s]['prop'].copy()
                         for uf in act[f]:
-                            if uf in list(prop.keys()):  
+                            if uf in list(prop.keys()):
                                 constr4 += Y[(f,uf)]*prop[uf][0]
                             else:
                                 constr4 += Y[(f,uf)]*0.00
                     if (f in Sn) and (s in ip) and (f != s):
                         prop = prod_mdp.edge[f][s]['prop'].copy()
                         for uf in act[f]:
-                            if uf in list(prop.keys()):  
+                            if uf in list(prop.keys()):
                                 constr4 += Y[(f,uf)]*prop[uf][0]
                             else:
                                 constr4 += Y[(f,uf)]*0.00
@@ -501,7 +508,7 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                 if (s not in list(y_in_sf.keys())) and (s not in ip):
                     model.addConstr(constr3 == constr4, 'balance')
             print('Balance condition added')
-            print('Initial sf condition added')            
+            print('Initial sf condition added')
             #--------------------
             y_to_ip = 0.0
             y_out = 0.0
@@ -537,13 +544,13 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                 U = []
                 P = []
                 for u in act[s]:
-                    norm += Y[(s,u)].X
+                    norm += Y[(s,u)].solution_value()
                 for u in act[s]:
                     U.append(u)
                     if norm > 0.01:
-                        P.append(Y[(s,u)].X/norm)
+                        P.append(Y[(s,u)].solution_value()/norm)
                     else:
-                        P.append(1.0/len(act[s])) 
+                        P.append(1.0/len(act[s]))
                 plan_suffix[s] = [U, P]
             print("----Suffix plan added")
             cost = model.objval
@@ -559,23 +566,23 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
-                                y_out += Y[(s,u)].X*pe
+                                y_out += Y[(s,u)].solution_value()*pe
                     elif t in ip:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
-                                y_to_ip += Y[(s,u)].X*pe
+                                y_to_ip += Y[(s,u)].solution_value()*pe
             if (y_to_ip+y_out)>0:
                 risk = y_out/(y_to_ip+y_out)
-            print('y_out: %s; y_to_ip+y_out: %s' %(y_out, y_to_ip+y_out))                
+            print('y_out: %s; y_to_ip+y_out: %s' %(y_out, y_to_ip+y_out))
             print("----Suffix risk computed")
             return plan_suffix, cost, risk
-        except GurobiError:
-            print("Gurobi Error reported")
-            return None, None, None       
+        except:
+            print("ORtools Error reported")
+            return None, None, None
 
-        
+
 def syn_plan_bad(prod_mdp, state_types):
     Sf = state_types[0]
     Sr = state_types[2]
@@ -611,7 +618,7 @@ def syn_plan_bad(prod_mdp, state_types):
                                 proj_cost[u] += prob_edge*prob_label*dist[qt]
         # policy for bad states
         U = []
-        P = []                                
+        P = []
         if list(proj_cost.keys()):
             # print 'sd',sd
             u_star = min(list(proj_cost.keys()), key = lambda u: proj_cost[u])
@@ -626,11 +633,11 @@ def syn_plan_bad(prod_mdp, state_types):
                 U.append(u)
                 P.append(1.0/len(Ud))
         plan_bad[sd] = [U, P]
-    return plan_bad        
+    return plan_bad
 
-        
+
 def act_by_plan(prod_mdp, best_plan, prod_state):
-    #----choose the randomized action by the optimal policy---- 
+    #----choose the randomized action by the optimal policy----
     #recall that {best_plan = [plan_prefix, prefix_cost, prefix_risk, y_in_sf],
     #[plan_suffix, suffix_cost, suffix_risk], [MEC[0], MEC[1], Sr, Sd], plan_bad]}
     plan_prefix = best_plan[0][0]
@@ -664,7 +671,7 @@ def act_by_plan(prod_mdp, best_plan, prod_state):
         else:
             return U[k], 1
     elif (prod_state in plan_bad):
-        #print 'In bad states'        
+        #print 'In bad states'
         U = plan_bad[prod_state][0]
         P = plan_bad[prod_state][1]
         rdn = random.random()
@@ -675,7 +682,7 @@ def act_by_plan(prod_mdp, best_plan, prod_state):
                 break
         #print 'action chosen: %s' %str(U[k])
         return U[k], 2
-    
+
 
 def rd_act_by_plan(prod_mdp, best_plan, prod_state, I):
     #----choose the randomized action by the optimal policy----
@@ -712,7 +719,7 @@ def rd_act_by_plan(prod_mdp, best_plan, prod_state, I):
         else:
             return u, 1, I
     elif (prod_state in plan_bad):
-        #print 'In bad states'        
+        #print 'In bad states'
         U = plan_bad[prod_state][0]
         P = plan_bad[prod_state][1]
         rdn = random.random()
@@ -724,7 +731,7 @@ def rd_act_by_plan(prod_mdp, best_plan, prod_state, I):
         #print 'action chosen: %s' %str(U[k])
         return U[k], 2, I
 
-            
+
 def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
     #----Synthesize combined optimal plan prefix and suffix
     #----with bounded risk and minimal mean total cost----
@@ -757,18 +764,17 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
         print('Sn size: %s; Sd inside size: %s; Sr inside size: %s' %(len(Sn),len(Sd), len(Sr)))
         # ---------solve lp------------
         print('-----')
-        print('Gurobi starts now')
+        print('ORtools starts now')
         print('-----')
         try:
-        #if True:
-            model = Model('plan_comb')
+            comb_solver = pywraplp.Solver.CreateSolver('GLOP')
             #--------------------
             #prefix variable
             Y = defaultdict(float)
             # create variables
             for s in Sr:
                 for u in prod_mdp.node[s]['act'].copy():
-                    Y[(s,u)] = model.addVar(vtype=GRB.CONTINUOUS,lb=0, name='y[(%s, %s)]' %(s, u))
+                    Y[(s,u)] = comb_solver.NumVar(0, 1000, 'y[(%s, %s)]' %(s, u))
             print('Prefix Y variables added')
             #--------------------
             #suffix variables
@@ -779,12 +785,11 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 act = mec[2].copy()
                 for s in sf:
                     for u in act[s]:
-                        Z[(s,u)] = model.addVar(vtype=GRB.CONTINUOUS,lb=0, name='z[(%s, %s)]' %(s, u))
+                        Z[(s,u)] = comb_solver.NumVar(0, 1000, name='z[(%s, %s)]' %(s, u))
             print('Suffix Z variables added')
-            model.update()
             # set objective
             obj = 0
-            for s in Sr:                
+            for s in Sr:
                 for t in prod_mdp.successors_iter(s):
                     prop = prod_mdp.edge[s][t]['prop'].copy()
                     for u in prop.keys():
@@ -803,7 +808,7 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                                 pe = prop[u][0]
                                 ce = prop[u][1]
                                 obj += (1.0-alpha)*Z[(s,u)]*pe*ce
-            model.setObjective(obj, GRB.MINIMIZE)
+            comb_solver.Minimize(obj)
             print('alpha*Prefix + (1.0-alpha)*Suffix cost Objective function set')
             # add constraints
             #------------------------------
@@ -813,22 +818,22 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 for t in prod_mdp.successors_iter(s):
                     if t in Sd:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sd += Y[(s,u)]*pe
                     elif t in sf:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sf += Y[(s,u)]*pe
-            model.addConstr(y_to_sf+y_to_sd >= delta, 'sum_out')
-            model.addConstr(y_to_sf >= (1.0-gamma)*(y_to_sf+y_to_sd), 'risk')            
+            comb_solver.Add(y_to_sf+y_to_sd >= delta)
+            comb_solver.Add(y_to_sf >= (1.0-gamma)*(y_to_sf+y_to_sd))
             print('Prefix risk constraint added')
             #--------------------
             for t in Sr:
                 node_y_in = 0.0
                 node_y_out = 0.0
-                for u in prod_mdp.node[t]['act']:   
+                for u in prod_mdp.node[t]['act']:
                     node_y_out += Y[(t,u)]
                 for f in prod_mdp.predecessors_iter(t):
                     if f in Sr:
@@ -836,9 +841,9 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                         for uf in prop.keys():
                             node_y_in += Y[(f,uf)]*prop[uf][0]
                 if t == init_node:
-                    model.addConstr(node_y_out == 1.0 + node_y_in, 'init_node_flow_balance')
+                    comb_solver.Add(node_y_out == 1.0 + node_y_in)
                 else:
-                    model.addConstr(node_y_out == node_y_in, 'middle_node_flow_balance')
+                    comb_solver.Add(node_y_out == node_y_in)
             print('Prefix initial node flow balanced')
             print('Prefix middle node flow balanced')
             #----------------------
@@ -856,28 +861,28 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                         if (f in sf) and (s not in ip):
                             prop = prod_mdp.edge[f][s]['prop'].copy()
                             for uf in act[f]:
-                                if uf in list(prop.keys()):  
+                                if uf in list(prop.keys()):
                                     constr4 += Z[(f,uf)]*prop[uf][0]
                                 else:
                                     constr4 += Z[(f,uf)]*0.00
                         if (f in sf) and (s in ip) and (f != s):
                             prop = prod_mdp.edge[f][s]['prop'].copy()
                             for uf in act[f]:
-                                if uf in list(prop.keys()):  
+                                if uf in list(prop.keys()):
                                     constr4 += Z[(f,uf)]*prop[uf][0]
                                 else:
                                     constr4 += Z[(f,uf)]*0.00
                         elif (f not in sf):
                             prop = prod_mdp.edge[f][s]['prop'].copy()
-                            for uf in prop.keys(): 
+                            for uf in prop.keys():
                                 pe = prop[uf][0]
                                 y_in_sf += Y[(f,uf)]*pe
                     if (s not in ip):
-                        model.addConstr(constr3 == constr4 + y_in_sf, 'balance_with_y_in')
+                        comb_solver.Add(constr3 == constr4 + y_in_sf)
                     elif (s in ip):
-                        model.addConstr(constr3 == y_in_sf, 'balance_with_y_in')
+                        comb_solver.Add(constr3 == y_in_sf)
                 print('Suffix balance condition added')
-                print('Suffix initial y_in_sf condition added')            
+                print('Suffix initial y_in_sf condition added')
                 #--------------------
                 y_to_ip = 0.0
                 y_out = 0.0
@@ -895,17 +900,22 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                                 if u in act[s]:
                                     pe = prop[u][0]
                                     y_to_ip += Z[(s,u)]*pe
-                model.addConstr(y_to_ip+y_out >= delta, 'sum_out')
-                model.addConstr(y_to_ip >= (1.0-gamma)*(y_to_ip+y_out), 'risk')
+                comb_solver.Add(y_to_ip+y_out >= delta)
+                comb_solver.Add(y_to_ip >= (1.0-gamma)*(y_to_ip+y_out))
                 print('Suffix risk constraint added')
             #----------------------
             # solve
             print('--optimization starts--')
-            model.optimize()
-            # print '--variables value--'
-            # for v in model.getVars():
-            #     print v.varName, v.x
-            # print 'obj:', model.objVal
+            status = comb_solver.Solve()
+            if status == pywraplp.Solver.OPTIMAL:
+                print('Solution:')
+                print('Objective value =', suffix_solver.Objective().Value())
+                print('\nAdvanced usage:')
+                print('Problem solved in %f milliseconds' % suffix_solver.wall_time())
+                print('Problem solved in %d iterations' % suffix_solver.iterations())
+            else:
+                print('The problem does not have an optimal solution.')
+                return None, None, None, None, None, None, None, None
             #------------------------------
             # compute plan prefix given the LP solution
             plan_prefix = dict()
@@ -913,13 +923,13 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 norm = 0
                 U = []
                 P = []
-                U_total = prod_mdp.node[s]['act'].copy()          
+                U_total = prod_mdp.node[s]['act'].copy()
                 for u in U_total:
-                    norm += Y[(s,u)].X
+                    norm += Y[(s,u)].solution_value()
                 for u in U_total:
                     U.append(u)
                     if norm > 0.01:
-                        P.append(Y[(s,u)].X/norm)
+                        P.append(Y[(s,u)].solution_value()/norm)
                     else:
                         P.append(1.0/len(U_total))
                 plan_prefix[s] = [U, P]
@@ -937,22 +947,22 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                     for u in prop.keys():
                         pe = prop[u][0]
                         ce = prop[u][1]
-                        cost_pre += Y[(s,u)].X*pe*ce
+                        cost_pre += Y[(s,u)].solution_value()*pe*ce
                     if t in Sd:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
-                            y_to_sd += Y[(s,u)].X*pe
+                            y_to_sd += Y[(s,u)].solution_value()*pe
                     elif t in sf:
                         prop = prod_mdp.edge[s][t]['prop'].copy()
-                        for u in prop.keys(): 
+                        for u in prop.keys():
                             pe = prop[u][0]
-                            y_to_sf += Y[(s,u)].X*pe
+                            y_to_sf += Y[(s,u)].solution_value()*pe
             if (y_to_sd+y_to_sf) >0:
                 risk_pre = y_to_sd/(y_to_sd+y_to_sf)
             print('y_to_sd: %s; y_to_sd+y_to_sf: %s' %(y_to_sd, y_to_sd+y_to_sf))
             print("----Prefix risk computed: %s" %str(risk_pre))
-            print("----Prefix cost computed: %s" %str(cost_pre))                        
+            print("----Prefix cost computed: %s" %str(cost_pre))
             #--------------------
             # compute optimal plan suffix given the LP solution
             plan_suffix = dict()
@@ -965,13 +975,13 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                     U = []
                     P = []
                     for u in act[s]:
-                        norm += Z[(s,u)].X
+                        norm += Z[(s,u)].solution_value()
                     for u in act[s]:
                         U.append(u)
                         if norm > 0.01:
-                            P.append(Z[(s,u)].X/norm)
+                            P.append(Z[(s,u)].solution_value()/norm)
                         else:
-                            P.append(1.0/len(act[s])) 
+                            P.append(1.0/len(act[s]))
                     plan_suffix[s] = [U, P]
             print("----Suffix plan added")
             # compute risk given the plan suffix
@@ -992,29 +1002,29 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                             if u in act[s]:
                                 pe = prop[u][0]
                                 ce = prop[u][1]
-                                cost_suf += Z[(s,u)].X*pe*ce
+                                cost_suf += Z[(s,u)].solution_value()*pe*ce
                         if (t not in sf):
                             prop = prod_mdp.edge[s][t]['prop'].copy()
                             for u in prop.keys():
                                 if u in act[s]:
                                     pe = prop[u][0]
-                                    y_out += Z[(s,u)].X*pe
+                                    y_out += Z[(s,u)].solution_value()*pe
                         elif (t in ip):
                             prop = prod_mdp.edge[s][t]['prop'].copy()
                             for u in prop.keys():
                                 if u in act[s]:
                                     pe = prop[u][0]
-                                    y_to_ip += Z[(s,u)].X*pe
+                                    y_to_ip += Z[(s,u)].solution_value()*pe
                 if (y_to_ip+y_out)>0:
                     risk_suf = y_out/(y_to_ip+y_out)
                 Risk_suf.append(risk_suf)
                 Cost_suf.append(cost_suf)
-                print('one AMEC: y_out: %s; y_to_ip+y_out: %s' %(y_out, y_to_ip+y_out))                
+                print('one AMEC: y_out: %s; y_to_ip+y_out: %s' %(y_out, y_to_ip+y_out))
             print("----Suffix risk computed: %s" %str(Risk_suf))
             print("----Suffix cost computed: %s" %str(Cost_suf))
             total_cost = model.objval
             print("----alpha*Prefix + (1-alpha)*Suffix cost computed")
             return total_cost, plan_prefix, cost_pre, risk_pre, plan_suffix, Cost_suf, Risk_suf, [Sf,ip_set,Sr,Sd]
-        except GurobiError:
-            print("Gurobi Error reported")
+        except:
+            print("ORtools Error reported")
             return None, None, None, None, None, None, None, None
