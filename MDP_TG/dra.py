@@ -35,7 +35,7 @@ class Dra(DiGraph):
 
     def check_label_for_dra_edge(self, label, f_dra_node, t_dra_node):
         # ----check if a label satisfies the guards on one dra edge----
-        guard_string_list = self.edge[f_dra_node][t_dra_node]['guard_string']
+        guard_string_list = self.edges[f_dra_node][t_dra_node]['guard_string']
         guard_int_list = []
         for st in guard_string_list:
             int_st = []
@@ -55,7 +55,7 @@ class Dra(DiGraph):
 
     def check_distance_for_dra_edge(self, label, f_dra_node, t_dra_node):
         # ----check the distance between a label and the guards on one dra edge----
-        guard_string_list = self.edge[f_dra_node][t_dra_node]['guard_string']
+        guard_string_list = self[f_dra_node][t_dra_node]['guard_string']
         guard_int_list = []
         for st in guard_string_list:
             int_st = []
@@ -86,15 +86,15 @@ class Product_Dra(DiGraph):
 
     def build_full(self):
         # ----construct full product----
-        for f_mdp_node in self.graph['mdp'].nodes_iter():
-            for f_mdp_label, f_label_prob in self.graph['mdp'].node[f_mdp_node]['label'].items():
-                for f_dra_node in self.graph['dra'].nodes_iter():
+        for f_mdp_node in self.graph['mdp']:
+            for f_mdp_label, f_label_prob in self.graph['mdp'].nodes[f_mdp_node]['label'].items():
+                for f_dra_node in self.graph['dra']:
                     f_prod_node = self.composition(
                         f_mdp_node, f_mdp_label, f_dra_node)
-                    for t_mdp_node in self.graph['mdp'].successors_iter(f_mdp_node):
+                    for t_mdp_node in self.graph['mdp'].successors(f_mdp_node):
                         mdp_edge = self.graph['mdp'][f_mdp_node][t_mdp_node]
-                        for t_mdp_label, t_label_prob in self.graph['mdp'].node[t_mdp_node]['label'].items():
-                            for t_dra_node in self.graph['dra'].successors_iter(f_dra_node):
+                        for t_mdp_label, t_label_prob in self.graph['mdp'].nodes[t_mdp_node]['label'].items():
+                            for t_dra_node in self.graph['dra'].successors(f_dra_node):
                                 t_prod_node = self.composition(
                                     t_mdp_node, t_mdp_label, t_dra_node)
                                 truth = self.graph['dra'].check_label_for_dra_edge(
@@ -116,7 +116,7 @@ class Product_Dra(DiGraph):
     def composition(self, mdp_node, mdp_label, dra_node):
         prod_node = (mdp_node, mdp_label, dra_node)
         if not self.has_node(prod_node):
-            Us = self.graph['mdp'].node[mdp_node]['act'].copy()
+            Us = self.graph['mdp'].nodes[mdp_node]['act'].copy()
             self.add_node(prod_node, mdp=mdp_node,
                           label=mdp_label, dra=dra_node, act=Us)
             if ((mdp_node == self.graph['mdp'].graph['init_state']) and
@@ -164,7 +164,7 @@ class Product_Dra(DiGraph):
                     if len(T) == 1:  # self-loop
                         common_cp = common.copy()
                         s = common_cp.pop()
-                        loop_act_set = set(self.edge[s][s]['prop'].keys())
+                        loop_act_set = set(self[s][s]['prop'].keys())
                         loop_act = dict()
                         loop_act[s] = loop_act_set
                         S_fi.append([T, common, loop_act])
@@ -208,8 +208,8 @@ class Product_Dra(DiGraph):
                     if len(T) == 1:  # self-loop
                         common_cp = common.copy()
                         s = common_cp.pop()
-                        if s in self.successors_iter(s):
-                            loop_act_set = set(self.edge[s][s]['prop'].keys())
+                        if s in self.successors(s):
+                            loop_act_set = set(self[s][s]['prop'].keys())
                             loop_act = dict()
                             loop_act[s] = loop_act_set
                             S_fi.append([T, common, loop_act])
@@ -276,8 +276,8 @@ class Product_Dra(DiGraph):
                 label = label_seq[t]
                 prev_state = tuple(current_state)
                 error = True
-                for next_state in self.successors_iter(prev_state):
-                    if((self.node[next_state]['mdp'] == mdp_state) and (self.node[next_state]['label'] == label) and (u in list(self.edge[prev_state][next_state]['prop'].keys()))):
+                for next_state in self.successors(prev_state):
+                    if((self.nodes[next_state]['mdp'] == mdp_state) and (self.nodes[next_state]['label'] == label) and (u in list(self[prev_state][next_state]['prop'].keys()))):
                         current_state = tuple(next_state)
                         error = False
                         break
@@ -291,8 +291,8 @@ class Product_Dra(DiGraph):
                 S = []
                 P = []
                 if m != 2:  # in prefix or suffix
-                    for next_state in self.successors_iter(prev_state):
-                        prop = self.edge[prev_state][next_state]['prop']
+                    for next_state in self.successors(prev_state):
+                        prop = self[prev_state][next_state]['prop']
                         if (u in list(prop.keys())):
                             S.append(next_state)
                             P.append(prop[u][0])
@@ -303,12 +303,12 @@ class Product_Dra(DiGraph):
                     Sr = best_all_plan[2][2]
                     (xf, lf, qf) = prev_state
                     postqf = self.graph['dra'].successors(qf)
-                    for xt in self.graph['mdp'].successors_iter(xf):
+                    for xt in self.graph['mdp'].successors(xf):
                         if xt != xf:
-                            prop = self.graph['mdp'].edge[xf][xt]['prop']
+                            prop = self.graph['mdp'][xf][xt]['prop']
                             if u in list(prop.keys()):
                                 prob_edge = prop[u][0]
-                                label = self.graph['mdp'].node[xt]['label']
+                                label = self.graph['mdp'].nodes[xt]['label']
                                 for lt in label.keys():
                                     prob_label = label[lt]
                                     dist = dict()
@@ -328,8 +328,8 @@ class Product_Dra(DiGraph):
                     if pc > rdn:
                         break
                 current_state = tuple(S[k])
-                mdp_state = self.node[current_state]['mdp']
-                label = self.node[current_state]['label']
+                mdp_state = self.nodes[current_state]['mdp']
+                label = self.nodes[current_state]['label']
             # ----
             u, m = act_by_plan(self, best_all_plan, current_state)
             X.append(mdp_state)
@@ -368,8 +368,8 @@ class Product_Dra(DiGraph):
                 label = label_seq[t]
                 prev_state = tuple(current_state)
                 error = True
-                for next_state in self.successors_iter(prev_state):
-                    if((self.node[next_state]['mdp'] == mdp_state) and (self.node[next_state]['label'] == label) and (u in list(self.edge[prev_state][next_state]['prop'].keys()))):
+                for next_state in self.successors(prev_state):
+                    if((self.nodes[next_state]['mdp'] == mdp_state) and (self.nodes[next_state]['label'] == label) and (u in list(self[prev_state][next_state]['prop'].keys()))):
                         current_state = tuple(next_state)
                         error = False
                         break
@@ -382,8 +382,8 @@ class Product_Dra(DiGraph):
                 prev_state = tuple(current_state)
                 S = []
                 P = []
-                for next_state in self.successors_iter(prev_state):
-                    prop = self.edge[prev_state][next_state]['prop']
+                for next_state in self.successors(prev_state):
+                    prop = self[prev_state][next_state]['prop']
                     if (u in list(prop.keys())):
                         S.append(next_state)
                         P.append(prop[u][0])
@@ -394,8 +394,8 @@ class Product_Dra(DiGraph):
                     if pc > rdn:
                         break
                 current_state = tuple(S[k])
-                mdp_state = self.node[current_state]['mdp']
-                label = self.node[current_state]['label']
+                mdp_state = self.nodes[current_state]['mdp']
+                label = self.nodes[current_state]['label']
             # ----
             u, m, I = rd_act_by_plan(self, best_all_plan, current_state, I)
             X.append(mdp_state)

@@ -2,7 +2,7 @@
 
 from math import sqrt
 from networkx.classes.digraph import DiGraph
-from networkx import strongly_connected_component_subgraphs
+from networkx import strongly_connected_components_recursive
 
 # ----------------------------------
 
@@ -29,7 +29,7 @@ class Motion_MDP(DiGraph):
             u = edge[1]
             t_node = edge[2]
             if (f_node, t_node) in self.edges():
-                prop = self.edge[f_node][t_node]['prop']
+                prop = self[f_node][t_node]['prop']
                 prop[tuple(u)] = [attri[0], attri[1]]
             else:
                 prob_cost = dict()
@@ -39,11 +39,11 @@ class Motion_MDP(DiGraph):
         # ----
         for f_node in self.nodes():
             Us = set()
-            for t_node in self.successors_iter(f_node):
-                prop = self.edge[f_node][t_node]['prop']
+            for t_node in self.successors(f_node):
+                prop = self[f_node][t_node]['prop']
                 Us.update(set(prop.keys()))
             if Us:
-                self.node[f_node]['act'] = Us.copy()
+                self.nodes[f_node]['act'] = Us.copy()
             else:
                 print('Isolated state')
         print("-------Motion MDP Constructed-------")
@@ -51,18 +51,18 @@ class Motion_MDP(DiGraph):
     def unify_mdp(self):
         # ----verify the probability sums up to 1----
         for f_node in self.nodes():
-            for u in self.node[f_node]['act']:
+            for u in self.nodes[f_node]['act']:
                 sum_prob = 0
                 N = 0
-                for t_node in self.successors_iter(f_node):
-                    prop = self.edge[f_node][t_node]['prop']
+                for t_node in self.successors(f_node):
+                    prop = self[f_node][t_node]['prop']
                     if u in list(prop.keys()):
                         sum_prob += prop[u][0]
                         N += 1
                 if sum_prob < 1.0:
                     to_add = (1.0-sum_prob)/N
-                    for t_node in self.successors_iter(f_node):
-                        prop = self.edge[f_node][t_node]['prop']
+                    for t_node in self.successors(f_node):
+                        prop = self[f_node][t_node]['prop']
                         if u in list(prop.keys()):
                             prop[u][0] += to_add
         print('Unify MDP Done')
@@ -76,7 +76,7 @@ def find_MECs(mdp, Sneg):
     U = mdp.graph['U']
     A = dict()
     for s in Sneg:
-        A[s] = mdp.node[s]['act'].copy()
+        A[s] = mdp.nodes[s]['act'].copy()
         if not A[s]:
             print("Isolated state")
     MEC = set()
@@ -98,21 +98,20 @@ def find_MECs(mdp, Sneg):
             for s_f in T_temp:
                 if s_f not in simple_digraph:
                     simple_digraph.add_node(s_f)
-                for s_t in mdp.successors_iter(s_f):
+                for s_t in mdp.successors(s_f):
                     if s_t in T_temp:
                         simple_digraph.add_edge(s_f, s_t)
             print("SubGraph of one MEC: %s states and %s edges" % (
                 str(len(simple_digraph.nodes())), str(len(simple_digraph.edges()))))
-            Sccs = strongly_connected_component_subgraphs(simple_digraph)
             i = 0
-            for Scc in Sccs:
+            for Scc in strongly_connected_components_recursive(simple_digraph):
                 i += 1
-                if (len(Scc.edges()) >= 1):
-                    for s in Scc.nodes():
+                if (len(Scc) >= 1):
+                    for s in Scc:
                         U_to_remove = set()
                         for u in A[s]:
-                            for t in mdp.successors_iter(s):
-                                if ((u in list(mdp.edge[s][t]['prop'].keys())) and (t not in Scc.nodes())):
+                            for t in mdp.successors(s):
+                                if ((u in list(mdp[s][t]['prop'].keys())) and (t not in Scc)):
                                     U_to_remove.add(u)
                         A[s].difference_update(U_to_remove)
                         if not A[s]:
@@ -123,15 +122,14 @@ def find_MECs(mdp, Sneg):
                 for f in mdp.predecessors(s):
                     if f in T_temp:
                         A[f].difference_update(
-                            set(mdp.edge[f][s]['prop'].keys()))
+                            set(mdp[f][s]['prop'].keys()))
                         if not A[f]:
                             R.add(f)
-            New_Sccs = strongly_connected_component_subgraphs(simple_digraph)
             j = 0
-            for Scc in New_Sccs:
+            for Scc in strongly_connected_components_recursive(simple_digraph):
                 j += 1
-                if (len(Scc.edges()) >= 1):
-                    common = set(Scc.nodes()).intersection(T_temp)
+                if (len(Scc) >= 1):
+                    common = set(Scc).intersection(T_temp)
                     if common:
                         MECnew.add(frozenset(common))
     # ---------------
@@ -146,16 +144,15 @@ def find_SCCs(mdp, Sneg):
     simple_digraph = DiGraph()
     A = dict()
     for s in mdp.nodes():
-        A[s] = mdp.node[s]['act'].copy()
+        A[s] = mdp.nodes[s]['act'].copy()
     for s_f in Sneg:
         if s_f not in simple_digraph:
             simple_digraph.add_node(s_f)
-        for s_t in mdp.successors_iter(s_f):
+        for s_t in mdp.successors(s_f):
             if s_t in Sneg:
                 simple_digraph.add_edge(s_f, s_t)
     print("SubGraph of one Sf: %s states and %s edges" %
           (str(len(simple_digraph.nodes())), str(len(simple_digraph.edges()))))
-    sccs = strongly_connected_component_subgraphs(simple_digraph)
-    for scc in sccs:
-        SCC.add(frozenset(scc.nodes()))
+    for scc in strongly_connected_components_recursive(simple_digraph):
+        SCC.add(frozenset(scc))
     return SCC, A
