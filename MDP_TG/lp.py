@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- Coding: utf-8 -*-
 
 from networkx.classes.digraph import DiGraph
 from networkx import single_source_shortest_path
@@ -147,7 +147,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
     print("===========[plan prefix synthesis starts]===========")
     sf = MEC[0]
     ip = MEC[1]  # force convergence to ip
-    delta = 1.0
+    delta = 0.01
     for init_node in prod_mdp.graph['initial']:
         path_init = single_source_shortest_path(prod_mdp, init_node)
         print('Reachable from init size: %s' % len(list(path_init.keys())))
@@ -169,7 +169,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
               (len(Sn), len(Sd), len(Sr)))
         # ---------solve lp------------
         print('-----')
-        print('ORtools starts now')
+        print('ORtools for prefix starts now')
         print('-----')
         try:
             # if True:
@@ -177,15 +177,15 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
             prefix_solver = pywraplp.Solver.CreateSolver('GLOP')
             # create variables
             for s in Sr:
-                for u in prod_mdp.node[s]['act'].copy():
+                for u in prod_mdp.nodes[s]['act'].copy():
                     Y[(s, u)] = prefix_solver.NumVar(
                         0, 1000, 'y[(%s, %s)]' % (s, u))
             print('Variables added')
             # set objective
             obj = 0
             for s in Sr:
-                for t in prod_mdp.successors_iter(s):
-                    prop = prod_mdp.edge[s][t]['prop'].copy()
+                for t in prod_mdp.successors(s):
+                    prop = prod_mdp[s][t]['prop'].copy()
                     for u in prop.keys():
                         pe = prop[u][0]
                         ce = prop[u][1]
@@ -197,34 +197,33 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
             y_to_sd = 0.0
             y_to_sf = 0.0
             for s in Sr:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t in Sd:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sd += Y[(s, u)]*pe
                     elif t in sf:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sf += Y[(s, u)]*pe
-            prefix_solver.Add(y_to_sf+y_to_sd >= delta)
-            prefix_solver.Add(y_to_sf >= (1.0-gamma)*(y_to_sf+y_to_sd))
+            # prefix_solver.Add(y_to_sf+y_to_sd >= delta)
+            prefix_solver.Add(y_to_sf >= (1.0-gamma-delta)*(y_to_sf+y_to_sd))
             print('Risk constraint added')
             # --------------------
             for t in Sr:
                 node_y_in = 0.0
                 node_y_out = 0.0
-                for u in prod_mdp.node[t]['act']:
+                for u in prod_mdp.nodes[t]['act']:
                     node_y_out += Y[(t, u)]
-                for f in prod_mdp.predecessors_iter(t):
+                for f in prod_mdp.predecessors(t):
                     if f in Sr:
-                        prop = prod_mdp.edge[f][t]['prop'].copy()
+                        prop = prod_mdp[f][t]['prop'].copy()
                         for uf in prop.keys():
                             node_y_in += Y[(f, uf)]*prop[uf][0]
                 if t == init_node:
                     prefix_solver.Add(node_y_out == 1.0 + node_y_in)
-
                 else:
                     prefix_solver.Add(node_y_out == node_y_in)
             print('Initial node flow balanced')
@@ -236,7 +235,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
             if status == pywraplp.Solver.OPTIMAL:
                 print('Solution:')
                 print('Objective value =', prefix_solver.Objective().Value())
-                print('\nAdvanced usage:')
+                print('Advanced usage:')
                 print('Problem solved in %f milliseconds' %
                       prefix_solver.wall_time())
                 print('Problem solved in %d iterations' %
@@ -250,7 +249,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
                 norm = 0
                 U = []
                 P = []
-                U_total = prod_mdp.node[s]['act'].copy()
+                U_total = prod_mdp.nodes[s]['act'].copy()
                 for u in U_total:
                     norm += Y[(s, u)].solution_value()
                 for u in U_total:
@@ -268,28 +267,28 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
             y_to_sd = 0.0
             y_to_sf = 0.0
             for s in Sr:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t in Sd:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sd += Y[(s, u)].solution_value()*pe
                     elif t in sf:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sf += Y[(s, u)].solution_value()*pe
             if (y_to_sd+y_to_sf) > 0:
                 risk = y_to_sd/(y_to_sd+y_to_sf)
-            print('y_to_sd: %s; y_to_sd+y_to_sf: %s' %
-                  (y_to_sd, y_to_sd+y_to_sf))
+            print('y_to_sd: %s; y_to_sf: %s, y_to_sd+y_to_sf: %s' %
+                  (y_to_sd, y_to_sf, y_to_sd+y_to_sf))
             print("----Prefix risk computed: %s" % str(risk))
             # compute the input flow to the suffix
             y_in_sf = dict()
             for s in Sn:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t in sf:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             if t not in y_in_sf:
@@ -307,7 +306,7 @@ def syn_plan_prefix(prod_mdp, MEC, gamma):
                 print("----Y in Sf computed and normalized")
             # print y_in_sf
             return plan_prefix, cost, risk, y_in_sf, Sr, Sd
-        except GurobiError:
+        except:
             print("ORTools Error reported")
             return None, None, None, None, None, None
 
@@ -319,8 +318,8 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
     sf = MEC[0]
     ip = MEC[1]
     act = MEC[2].copy()
-    delta = 1.0
-    gamma = 0.0
+    delta = 0.01
+    gamma = 0.00
     for init_node in prod_mdp.graph['initial']:
         paths = single_source_shortest_path(prod_mdp, init_node)
         Sn = set(paths.keys()).intersection(sf)
@@ -330,23 +329,22 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
         print('Ip and sf intersection size: %s' % len(Sn.intersection(ip)))
         # ---------solve lp------------
         print('------')
-        print('Gurobi starts now')
+        print('ORtools for suffix starts now')
         print('------')
         try:
             Y = defaultdict(float)
             suffix_solver = pywraplp.Solver.CreateSolver('GLOP')
-            model = Model('plan_suffix')
             # create variables
             for s in Sn:
                 for u in act[s]:
-                    Y[(s, u)] = model.addVar(0, 1000, 'y[(%s, %s)]' % (s, u))
+                    Y[(s, u)] = suffix_solver.NumVar(0, 1000, 'y[(%s, %s)]' % (s, u))
             print('Variables added: %d' % len(Y))
             # set objective
             obj = 0
             for s in Sn:
                 for u in act[s]:
-                    for t in prod_mdp.successors_iter(s):
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                    for t in prod_mdp.successors(s):
+                        prop = prod_mdp[s][t]['prop'].copy()
                         if u in list(prop.keys()):
                             pe = prop[u][0]
                             ce = prop[u][1]
@@ -360,16 +358,16 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
                 constr4 = 0
                 for u in act[s]:
                     constr3 += Y[(s, u)]
-                for f in prod_mdp.predecessors_iter(s):
+                for f in prod_mdp.predecessors(s):
                     if (f in Sn) and (s not in ip):
-                        prop = prod_mdp.edge[f][s]['prop'].copy()
+                        prop = prod_mdp[f][s]['prop'].copy()
                         for uf in act[f]:
                             if uf in list(prop.keys()):
                                 constr4 += Y[(f, uf)]*prop[uf][0]
                             else:
                                 constr4 += Y[(f, uf)]*0.00
                     if (f in Sn) and (s in ip) and (f != s):
-                        prop = prod_mdp.edge[f][s]['prop'].copy()
+                        prop = prod_mdp[f][s]['prop'].copy()
                         for uf in act[f]:
                             if uf in list(prop.keys()):
                                 constr4 += Y[(f, uf)]*prop[uf][0]
@@ -387,21 +385,21 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
             y_to_ip = 0.0
             y_out = 0.0
             for s in Sn:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t not in Sn:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
                                 y_out += Y[(s, u)]*pe
                     elif t in ip:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
                                 y_to_ip += Y[(s, u)]*pe
-            suffix_solver.Add(y_to_ip+y_out >= delta)
-            suffix_solver.Add(y_to_ip >= (1.0-gamma)*(y_to_ip+y_out))
+            # suffix_solver.Add(y_to_ip+y_out >= delta)
+            suffix_solver.Add(y_to_ip >= (1.0-gamma-delta)*(y_to_ip+y_out))
             print('Risk constraint added')
             # ------------------------------
             # solve
@@ -441,15 +439,15 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
             y_to_ip = 0.0
             y_out = 0.0
             for s in Sn:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t not in Sn:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
                                 y_out += Y[(s, u)].solution_value()*pe
                     elif t in ip:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
@@ -482,7 +480,7 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
         print('Ip and sf intersection size: %s' % len(Sn.intersection(ip)))
         # ---------solve lp------------
         print('------')
-        print('Gurobi starts now')
+        print('ORtools starts now')
         print('------')
         try:
             Y = defaultdict(float)
@@ -498,8 +496,8 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
             obj = 0
             for s in Sn:
                 for u in act[s]:
-                    for t in prod_mdp.successors_iter(s):
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                    for t in prod_mdp.successors(s):
+                        prop = prod_mdp[s][t]['prop'].copy()
                         if t in Sn:
                             if u in list(prop.keys()):
                                 pe = prop[u][0]
@@ -517,16 +515,16 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                 constr4 = 0
                 for u in act[s]:
                     constr3 += Y[(s, u)]
-                for f in prod_mdp.predecessors_iter(s):
+                for f in prod_mdp.predecessors(s):
                     if (f in Sn) and (s not in ip):
-                        prop = prod_mdp.edge[f][s]['prop'].copy()
+                        prop = prod_mdp[f][s]['prop'].copy()
                         for uf in act[f]:
                             if uf in list(prop.keys()):
                                 constr4 += Y[(f, uf)]*prop[uf][0]
                             else:
                                 constr4 += Y[(f, uf)]*0.00
                     if (f in Sn) and (s in ip) and (f != s):
-                        prop = prod_mdp.edge[f][s]['prop'].copy()
+                        prop = prod_mdp[f][s]['prop'].copy()
                         for uf in act[f]:
                             if uf in list(prop.keys()):
                                 constr4 += Y[(f, uf)]*prop[uf][0]
@@ -545,15 +543,15 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
             y_to_ip = 0.0
             y_out = 0.0
             for s in Sn:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t not in Sn:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
                                 y_out += Y[(s, u)]*pe
                     elif t in ip:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
@@ -592,15 +590,15 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
             y_to_ip = 0.0
             y_out = 0.0
             for s in Sn:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t not in Sn:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
                                 y_out += Y[(s, u)].solution_value()*pe
                     elif t in ip:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
@@ -625,17 +623,17 @@ def syn_plan_bad(prod_mdp, state_types):
         # print 'Sf size',len(Sf)
         # print 'Sr size',len(Sr)
         (xf, lf, qf) = sd
-        Ud = prod_mdp.node[sd]['act'].copy()
+        Ud = prod_mdp.nodes[sd]['act'].copy()
         proj_cost = dict()
         postqf = prod_mdp.graph['dra'].successors(qf)
         # print 'postqf size',len(postqf)
-        for xt in prod_mdp.graph['mdp'].successors_iter(xf):
+        for xt in prod_mdp.graph['mdp'].successors(xf):
             if xt != xf:
-                prop = prod_mdp.graph['mdp'].edge[xf][xt]['prop']
+                prop = prod_mdp.graph['mdp'][xf][xt]['prop']
                 for u in prop.keys():
                     prob_edge = prop[u][0]
                     cost = prop[u][1]
-                    label = prod_mdp.graph['mdp'].node[xt]['label']
+                    label = prod_mdp.graph['mdp'].nodes[xt]['label']
                     for lt in label.keys():
                         prob_label = label[lt]
                         dist = dict()
@@ -808,7 +806,7 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             Y = defaultdict(float)
             # create variables
             for s in Sr:
-                for u in prod_mdp.node[s]['act'].copy():
+                for u in prod_mdp.nodes[s]['act'].copy():
                     Y[(s, u)] = comb_solver.NumVar(
                         0, 1000, 'y[(%s, %s)]' % (s, u))
             print('Prefix Y variables added')
@@ -827,8 +825,8 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             # set objective
             obj = 0
             for s in Sr:
-                for t in prod_mdp.successors_iter(s):
-                    prop = prod_mdp.edge[s][t]['prop'].copy()
+                for t in prod_mdp.successors(s):
+                    prop = prod_mdp[s][t]['prop'].copy()
                     for u in prop.keys():
                         pe = prop[u][0]
                         ce = prop[u][1]
@@ -839,8 +837,8 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 act = mec[2].copy()
                 for s in sf:
                     for u in act[s]:
-                        for t in prod_mdp.successors_iter(s):
-                            prop = prod_mdp.edge[s][t]['prop'].copy()
+                        for t in prod_mdp.successors(s):
+                            prop = prod_mdp[s][t]['prop'].copy()
                             if u in list(prop.keys()):
                                 pe = prop[u][0]
                                 ce = prop[u][1]
@@ -852,14 +850,14 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             y_to_sd = 0.0
             y_to_sf = 0.0
             for s in Sr:
-                for t in prod_mdp.successors_iter(s):
+                for t in prod_mdp.successors(s):
                     if t in Sd:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sd += Y[(s, u)]*pe
                     elif t in sf:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sf += Y[(s, u)]*pe
@@ -870,11 +868,11 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             for t in Sr:
                 node_y_in = 0.0
                 node_y_out = 0.0
-                for u in prod_mdp.node[t]['act']:
+                for u in prod_mdp.nodes[t]['act']:
                     node_y_out += Y[(t, u)]
-                for f in prod_mdp.predecessors_iter(t):
+                for f in prod_mdp.predecessors(t):
                     if f in Sr:
-                        prop = prod_mdp.edge[f][t]['prop'].copy()
+                        prop = prod_mdp[f][t]['prop'].copy()
                         for uf in prop.keys():
                             node_y_in += Y[(f, uf)]*prop[uf][0]
                 if t == init_node:
@@ -894,23 +892,23 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                     y_in_sf = 0
                     for u in act[s]:
                         constr3 += Z[(s, u)]
-                    for f in prod_mdp.predecessors_iter(s):
+                    for f in prod_mdp.predecessors(s):
                         if (f in sf) and (s not in ip):
-                            prop = prod_mdp.edge[f][s]['prop'].copy()
+                            prop = prod_mdp[f][s]['prop'].copy()
                             for uf in act[f]:
                                 if uf in list(prop.keys()):
                                     constr4 += Z[(f, uf)]*prop[uf][0]
                                 else:
                                     constr4 += Z[(f, uf)]*0.00
                         if (f in sf) and (s in ip) and (f != s):
-                            prop = prod_mdp.edge[f][s]['prop'].copy()
+                            prop = prod_mdp[f][s]['prop'].copy()
                             for uf in act[f]:
                                 if uf in list(prop.keys()):
                                     constr4 += Z[(f, uf)]*prop[uf][0]
                                 else:
                                     constr4 += Z[(f, uf)]*0.00
                         elif (f not in sf):
-                            prop = prod_mdp.edge[f][s]['prop'].copy()
+                            prop = prod_mdp[f][s]['prop'].copy()
                             for uf in prop.keys():
                                 pe = prop[uf][0]
                                 y_in_sf += Y[(f, uf)]*pe
@@ -924,15 +922,15 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 y_to_ip = 0.0
                 y_out = 0.0
                 for s in sf:
-                    for t in prod_mdp.successors_iter(s):
+                    for t in prod_mdp.successors(s):
                         if t not in sf:
-                            prop = prod_mdp.edge[s][t]['prop'].copy()
+                            prop = prod_mdp[s][t]['prop'].copy()
                             for u in prop.keys():
                                 if u in act[s]:
                                     pe = prop[u][0]
                                     y_out += Z[(s, u)]*pe
                         elif t in ip:
-                            prop = prod_mdp.edge[s][t]['prop'].copy()
+                            prop = prod_mdp[s][t]['prop'].copy()
                             for u in prop.keys():
                                 if u in act[s]:
                                     pe = prop[u][0]
@@ -962,7 +960,7 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 norm = 0
                 U = []
                 P = []
-                U_total = prod_mdp.node[s]['act'].copy()
+                U_total = prod_mdp.nodes[s]['act'].copy()
                 for u in U_total:
                     norm += Y[(s, u)].solution_value()
                 for u in U_total:
@@ -981,19 +979,19 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
             y_to_sd = 0.0
             y_to_sf = 0.0
             for s in Sr:
-                for t in prod_mdp.successors_iter(s):
-                    prop = prod_mdp.edge[s][t]['prop'].copy()
+                for t in prod_mdp.successors(s):
+                    prop = prod_mdp[s][t]['prop'].copy()
                     for u in prop.keys():
                         pe = prop[u][0]
                         ce = prop[u][1]
                         cost_pre += Y[(s, u)].solution_value()*pe*ce
                     if t in Sd:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sd += Y[(s, u)].solution_value()*pe
                     elif t in sf:
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             pe = prop[u][0]
                             y_to_sf += Y[(s, u)].solution_value()*pe
@@ -1036,21 +1034,21 @@ def syn_plan_comb(prod_mdp, S_fi, gamma, alpha):
                 ip = mec[1]
                 act = mec[2].copy()
                 for s in sf:
-                    for t in prod_mdp.successors_iter(s):
-                        prop = prod_mdp.edge[s][t]['prop'].copy()
+                    for t in prod_mdp.successors(s):
+                        prop = prod_mdp[s][t]['prop'].copy()
                         for u in prop.keys():
                             if u in act[s]:
                                 pe = prop[u][0]
                                 ce = prop[u][1]
                                 cost_suf += Z[(s, u)].solution_value()*pe*ce
                         if (t not in sf):
-                            prop = prod_mdp.edge[s][t]['prop'].copy()
+                            prop = prod_mdp[s][t]['prop'].copy()
                             for u in prop.keys():
                                 if u in act[s]:
                                     pe = prop[u][0]
                                     y_out += Z[(s, u)].solution_value()*pe
                         elif (t in ip):
-                            prop = prod_mdp.edge[s][t]['prop'].copy()
+                            prop = prod_mdp[s][t]['prop'].copy()
                             for u in prop.keys():
                                 if u in act[s]:
                                     pe = prop[u][0]

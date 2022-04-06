@@ -35,7 +35,7 @@ class Dra(DiGraph):
 
     def check_label_for_dra_edge(self, label, f_dra_node, t_dra_node):
         # ----check if a label satisfies the guards on one dra edge----
-        guard_string_list = self.edges[f_dra_node][t_dra_node]['guard_string']
+        guard_string_list = self[f_dra_node][t_dra_node]['guard_string']
         guard_int_list = []
         for st in guard_string_list:
             int_st = []
@@ -236,7 +236,7 @@ class Product_Dra(DiGraph):
         file_dot.write(
             'node[shape=circle, fontname="Courier-Bold", fontsize=10, width=0.4, height=0.4, fixedsize=false]\n')
         file_dot.write('edge[arrowsize=0.6, arrowhead=vee]\n')
-        for edge in self.edges():
+        for edge in self.edges:
             file_dot.write('"'+str(edge[0])+'"' +
                            '->' + '"' + str(edge[1]) + '"' + ';\n')
         for acc_pairs in self.graph['accept']:
