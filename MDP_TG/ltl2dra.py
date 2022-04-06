@@ -18,8 +18,12 @@ from .promela import Parser
 
 def run_ltl2dra(formula):
     # ----call ltl2dstar executable----
-    cmd = "echo \"%s\"" % formula + " | " + "./MDP_TG/ltl2dstar " + \
-        "--ltl2nba=spin:./MDP_TG/ltl2ba --stutter=no - -"
+    current_dirname = dirname(__file__)
+    ltl2dra_dir = join(current_dirname, 'ltl2dstar')
+    ltl2ba_dir = join(current_dirname, 'ltl2ba')
+    print(ltl2dra_dir)
+    cmd = "echo \"%s\"" % formula + " | " + "%s " % ltl2dra_dir + \
+        "--ltl2nba=spin:%s --stutter=no - -" % ltl2ba_dir
     raw_output = check_output(cmd, shell=True)
     ascii_decoder = getdecoder("ascii")
     (output, _) = ascii_decoder(raw_output)
