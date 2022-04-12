@@ -403,7 +403,7 @@ def syn_plan_suffix(prod_mdp, MEC, y_in_sf):
             print('Risk constraint added')
             # ------------------------------
             # solve
-            print('--optimization starts--')
+            print('--optimization for suffix starts--')
             status = suffix_solver.Solve()
             if status == pywraplp.Solver.OPTIMAL:
                 print('Solution:')
@@ -480,18 +480,16 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
         print('Ip and sf intersection size: %s' % len(Sn.intersection(ip)))
         # ---------solve lp------------
         print('------')
-        print('ORtools starts now')
+        print('ORtools for suffix rex starts now')
         print('------')
         try:
             Y = defaultdict(float)
-            model = Model('plan_suffix')
+            suffix_rex_solver = pywraplp.Solver.CreateSolver('GLOP')
             # create variables
             for s in Sn:
                 for u in act[s]:
-                    Y[(s, u)] = model.addVar(vtype=GRB.CONTINUOUS,
-                                             lb=0, name='y[(%s, %s)]' % (s, u))
-            model.update()
-            print('Variables added')
+                    Y[(s, u)] = suffix_rex_solver.NumVar(0, 1000, 'y[(%s, %s)]' % (s, u))
+            print('Variables added: %d' % len(Y))
             # set objective
             obj = 0
             for s in Sn:
@@ -506,7 +504,7 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                         else:
                             if u in list(prop.keys()):
                                 obj += Y[(s, u)]*d
-            model.setObjective(obj, GRB.MINIMIZE)
+            suffix_rex_solver.Minimize(obj)
             print('Objective added')
             # add constraints
             # --------------------
@@ -531,12 +529,11 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                             else:
                                 constr4 += Y[(f, uf)]*0.00
                 if (s in list(y_in_sf.keys())) and (s not in ip):
-                    model.addConstr(constr3 == constr4 +
-                                    y_in_sf[s], 'balance_with_y_in')
+                    suffix_rex_solver.Add(constr3 == constr4 + y_in_sf[s])
                 if (s in list(y_in_sf.keys())) and (s in ip):
-                    model.addConstr(constr3 == y_in_sf[s], 'balance_with_y_in')
+                    suffix_rex_solver.Add(constr3 == y_in_sf[s])
                 if (s not in list(y_in_sf.keys())) and (s not in ip):
-                    model.addConstr(constr3 == constr4, 'balance')
+                    suffix_rex_solver.Add(constr3 == constr4)
             print('Balance condition added')
             print('Initial sf condition added')
             # --------------------
@@ -556,16 +553,24 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                             if u in act[s]:
                                 pe = prop[u][0]
                                 y_to_ip += Y[(s, u)]*pe
-            model.addConstr(y_to_ip+y_out >= delta, 'sum_out')
+            suffix_rex_solver.Add(y_to_ip+y_out >= delta)
             print('Risk constraint added')
             # --------------------
             # ------------------------------
             # solve
-            model.optimize()
-            # print '--variables value--'
-            # for v in model.getVars():
-            #     print v.varName, v.x
-            # print 'obj:', model.objVal
+            print('--optimization for suffix rex starts')
+            status = suffix_rex_solver.Solve()
+            if status == pywraplp.Solver.OPTIMAL:
+                print('Solution:')
+                print('Objective value =', suffix_rex_solver.Objective().Value())
+                print('Advanced usage:')
+                print('Problem solved in %f milliseconds' %
+                      suffix_rex_solver.wall_time())
+                print('Problem solved in %d iterations' %
+                      suffix_rex_solver.iterations())
+            else:
+                print('The problem does not have an optimal solution.')
+                return None, None, None
             # ------------------------------
             # compute optimal plan suffix given the LP solution
             plan_suffix = dict()
@@ -583,7 +588,7 @@ def syn_plan_suffix_rex(prod_mdp, MEC, d, y_in_sf):
                         P.append(1.0/len(act[s]))
                 plan_suffix[s] = [U, P]
             print("----Suffix plan added")
-            cost = model.objval
+            cost = suffix_rex_solver.Objective().Value()
             print("----Suffix cost computed")
             # compute the risk in the plan suffix
             risk = 0.0

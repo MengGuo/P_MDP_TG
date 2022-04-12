@@ -179,7 +179,7 @@ def visualize_suffix_cost_horizontal(UU, MM, RD_UU, RD_MM, COST, name=None):
     sorted_cost_U = sorted(cost_U)
     fit_U = stats.norm.pdf(sorted_cost_U, np.mean(
         sorted_cost_U), np.std(sorted_cost_U))
-    ax1.plot(sorted_cost_U, fit_U, '-ro', label='Optimized \n Strategy')
+    ax1.plot(sorted_cost_U, fit_U, '-ro', label='Optimized : Strategy')
     ax1.hist(sorted_cost_U, normed=True, color='green')
     ax1.set_xlabel(r'$Suffix\; cost$')
     ax1.set_ylabel(r'$Distribution$')
@@ -298,35 +298,47 @@ def visualize_world(WS_d, WS_node_dict, name=None):
 def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
     # ----visualize simulated runs----
     N = len(XX)
+    max_x = min_x = 0
+    max_y = min_y = 0
     # ----
     for n in range(0, N):
         figure = plt.figure()
         ax = figure.add_subplot(1, 1, 1)
+        text1 = None
+        text2 = None
         # ----- draw the workspace
         for node, prop in WS_node_dict.items():
             if frozenset(['base1', 'base']) in list(prop.keys()):
-                text = '$Base1$'
+                text1 = '$\mathrm{bs}_1$'
+                text2 = '1.0'
                 color = 'yellow'
             elif frozenset(['base2', 'base']) in list(prop.keys()):
-                text = '$Base2$'
+                text1 = '$\mathrm{bs}_2$'
+                text2 = '1.0'
                 color = 'yellow'
             elif frozenset(['base3', 'base']) in list(prop.keys()):
-                text = '$Base3$'
+                text1 = '$\mathrm{bs}_3$'
+                text2 = '1.0'
                 color = 'yellow'
             elif frozenset(['obstacle', 'low']) in list(prop.keys()):
-                text = '$Obs: 0.1$'
+                text1 = '$\mathrm{obs}$'
+                text2 = '0.1'
                 color = '#ff7f7f'
             elif frozenset(['obstacle', 'middle']) in list(prop.keys()):
-                text = '$Obs: 0.5$'
+                text1 = '$\mathrm{obs}$'
+                text2 = '0.5'
                 color = '#ff8000'
             elif frozenset(['obstacle', 'top']) in list(prop.keys()):
-                text = '$Obs: 0.9$'
+                text1 = '$\mathrm{obs}$'
+                text2 = '1.0'
                 color = 'red'
             elif frozenset(['obstacle', 'top']) in list(prop.keys()):
-                text = '$Obs: 1.0$'
+                text1 = '$\mathrm{obs}$'
+                text2 = '$1.0$'
                 color = 'red'
             elif frozenset(['supply', ]) in list(prop.keys()):
-                text = '$Sply: %s$' % str(prop[frozenset(['supply', ])])
+                text1 = '$\mathrm{spl}$'
+                text2 = '%s' % str(prop[frozenset(['supply', ])])
                 if prop[frozenset(['supply', ])] >= 0.8:
                     color = '#0000ff'
                 elif prop[frozenset(['supply', ])] >= 0.6:
@@ -335,8 +347,31 @@ def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
                     color = '#0080ff'
                 elif prop[frozenset(['supply', ])] >= 0.2:
                     color = '#00bfff'
+            elif frozenset(['md', ]) in list(prop.keys()):
+                text1 = '$\mathrm{md}$'
+                text2 = '%s' % str(prop[frozenset(['md', ])])
+                if prop[frozenset(['md', ])] >= 0.8:
+                    color = '#0000ff'
+                elif prop[frozenset(['md', ])] >= 0.6:
+                    color = '#0040ff'
+                elif prop[frozenset(['md', ])] >= 0.4:
+                    color = '#0080ff'
+                elif prop[frozenset(['md', ])] >= 0.2:
+                    color = '#00bfff'
+            elif frozenset(['stair', ]) in list(prop.keys()):
+                text1 = '$\mathrm{str}$'
+                text2 = '%s' % str(prop[frozenset(['stair', ])])
+                if prop[frozenset(['stair', ])] >= 0.8:
+                    color = '#006400'
+                elif prop[frozenset(['stair', ])] >= 0.6:
+                    color = '#228B22'
+                elif prop[frozenset(['stair', ])] >= 0.4:
+                    color = '#90EE90'
+                elif prop[frozenset(['stair', ])] >= 0.2:
+                    color = '#98FB98'
             else:
-                text = None
+                text1 = None
+                text2 = None
                 color = 'white'
             rec = matplotlib.patches.Rectangle((node[0]-WS_d, node[1]-WS_d),
                                                WS_d*2, WS_d*2,
@@ -347,9 +382,16 @@ def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
                                                ls='--',
                                                alpha=0.8)
             ax.add_patch(rec)
-            if text:
-                ax.text(node[0]-0.7, node[1], r'%s' %
-                        text, fontsize=10, fontweight='bold')
+            if text1:
+                ax.text(node[0]-0.08, node[1]+0.03, r'%s' %
+                        text1, fontsize=10, fontweight='bold')
+            if text2:
+                ax.text(node[0]-0.08, node[1]-0.15, r'%s' %
+                        text2, fontsize=10, fontweight='bold')
+            min_x = min([node[0]+WS_d, min_x])
+            max_x = max([node[0]+WS_d, max_x])
+            min_y = min([node[1]+WS_d, min_y])
+            max_y = max([node[1]+WS_d, max_y])
         X = list(XX[n])
         L = list(LL[n])
         U = list(UU[n])
@@ -377,18 +419,19 @@ def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
                 xl = X[k][0]
                 yl = X[k][1]
                 dl = X[k][2]
+                car_size = 0.1
                 if dl == 'N':
-                    car = [(xl-0.2, yl-0.2), (xl-0.2, yl+0.2),
-                           (xl, yl+0.4), (xl+0.2, yl+0.2), (xl+0.2, yl-0.2)]
+                    car = [(xl-car_size, yl-car_size), (xl-car_size, yl+car_size),
+                           (xl, yl+2*car_size), (xl+car_size, yl+car_size), (xl+car_size, yl-car_size)]
                 if dl == 'E':
-                    car = [(xl-0.2, yl+0.2), (xl+0.2, yl+0.2),
-                           (xl+0.4, yl), (xl+0.2, yl-0.2), (xl-0.2, yl-0.2)]
+                    car = [(xl-car_size, yl+car_size), (xl+car_size, yl+car_size),
+                           (xl+2*car_size, yl), (xl+car_size, yl-car_size), (xl-car_size, yl-car_size)]
                 if dl == 'S':
-                    car = [(xl+0.2, yl+0.2), (xl+0.2, yl-0.2),
-                           (xl, yl-0.4), (xl-0.2, yl-0.2), (xl-0.2, yl+0.2)]
+                    car = [(xl+car_size, yl+car_size), (xl+car_size, yl-car_size),
+                           (xl, yl-2*car_size), (xl-car_size, yl-car_size), (xl-car_size, yl+car_size)]
                 if dl == 'W':
-                    car = [(xl+0.2, yl-0.2), (xl-0.2, yl-0.2),
-                           (xl-0.4, yl), (xl-0.2, yl+0.2), (xl+0.2, yl+0.2)]
+                    car = [(xl+car_size, yl-car_size), (xl-car_size, yl-car_size),
+                           (xl-2*car_size, yl), (xl-car_size, yl+car_size), (xl+car_size, yl+car_size)]
                 polygon = Polygon(car, facecolor='black',
                                   edgecolor='black', lw=0.5, alpha=0.7)
                 ax.add_patch(polygon)
@@ -398,8 +441,8 @@ def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
                 #     actstr += s
                 # ax.text(xl, yl+0.7, r'%s' %str(actstr), fontsize = 15, fontweight = 'bold', color='red')
         ax.set_aspect('equal')
-        ax.set_xlim(0, 10)
-        ax.set_ylim(0, 10)
+        ax.set_xlim(min_x, max_x)
+        ax.set_ylim(min_y, max_y)
         ax.set_xlabel(r'$x(m)$')
         ax.set_ylabel(r'$y(m)$')
         if name:

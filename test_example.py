@@ -111,4 +111,4 @@ while (n < N):
     PP.append(PX)
     n += 1
 
-#visualize_run(XX, LL, UU, MM, 'surv_result')
+#visualize_run(XX, LL, UU, MM, 'surv_result')visualize_run(XX, LL, UU, MM, 'surv_result')
