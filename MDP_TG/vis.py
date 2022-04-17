@@ -408,7 +408,7 @@ def visualize_world_paths(WS_d, WS_node_dict, XX, LL, UU, MM, name=None):
             if M[k] > 2:
                 Ecolor = 'magenta'
             # ----
-            # if (M[k] == 1) and (k<= K-2):
+            #if (M[k] == 1) and (k<= K-2):
             if (k <= K-2):
                 line = matplotlib.lines.Line2D([X[k][0], X[k+1][0]],
                                                [X[k][1], X[k+1][1]],
